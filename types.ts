@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -11,7 +10,7 @@ export interface Lecture {
   id: number;
   title: string;
   type: 'file' | 'link';
-  content: string; 
+  content: string;
   date: string;
   isCompleted: boolean;
   notes?: string;
@@ -55,18 +54,41 @@ export interface StudyStats {
   focusRate: number;
 }
 
-export type PageId = 
-  | 'dashboard' 
-  | 'subjects' 
-  | 'planner' 
-  | 'timer' 
-  | 'ai-assistant' 
-  | 'mindmap' 
-  | 'creator' 
-  | 'voice' 
-  | 'blackboard' 
-  | 'editor' 
-  | 'mynotes' 
-  | 'pricing' 
+export interface QuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctAnswer: number
+}
+
+export interface QuizSettings {
+  timeLimit: number
+  shuffleQuestions: boolean
+  showResults: boolean
+}
+
+export interface PublishedQuiz {
+  id: string
+  title: string
+  creatorId: string
+  questions: QuizQuestion[]
+  settings: QuizSettings
+  createdAt: string
+}
+
+export type PageId =
+  | 'dashboard'
+  | 'subjects'
+  | 'planner'
+  | 'timer'
+  | 'ai-assistant'
+  | 'mindmap'
+  | 'creator'
+  | 'voice'
+  | 'blackboard'
+  | 'editor'
+  | 'mynotes'
+  | 'pricing'
   | 'privacy'
   | 'contact';
+
