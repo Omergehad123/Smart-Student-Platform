@@ -16,7 +16,7 @@ const supabaseKey =
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // إعداد Gemini
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
 
 // --- AI Chat Endpoint ---
 app.post("/api/chat", async (req, res) => {

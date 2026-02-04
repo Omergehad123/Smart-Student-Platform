@@ -28,7 +28,7 @@ export const ImageEditor: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const apiKey = import.meta.env.VITE_APi_kEY;
+      const apiKey = import.meta.env.VITE_API_kEY;
       const ai = new GoogleGenAI({ apiKey });
       const base64 = image.split(',')[1];
       const response = await ai.models.generateContent({
@@ -105,7 +105,7 @@ export const ImageEditor: React.FC = () => {
             <div className="flex gap-2">
               <button onClick={downloadImage} className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">تحميل</button>
               <button onClick={exportToPDF} className="px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">PDF</button>
-              <button onClick={() => {setImage(null); setEditedImage(null);}} className="p-4 bg-rose-50 text-rose-500 rounded-2xl"><Trash2 /></button>
+              <button onClick={() => { setImage(null); setEditedImage(null); }} className="p-4 bg-rose-50 text-rose-500 rounded-2xl"><Trash2 /></button>
             </div>
           )}
         </div>
@@ -140,13 +140,13 @@ export const ImageEditor: React.FC = () => {
 
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border dark:border-slate-800">
-            <textarea 
+            <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="اكتب التعديل المطلوب..."
               className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl dark:text-white min-h-[150px] mb-6 font-bold"
             />
-            <button 
+            <button
               onClick={handleEdit}
               disabled={loading || !image}
               className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl disabled:opacity-50"

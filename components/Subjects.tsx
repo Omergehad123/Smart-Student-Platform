@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  BookOpen, Plus, Trash2, Book, Sparkles, ArrowLeft, Upload, 
+import {
+  BookOpen, Plus, Trash2, Book, Sparkles, ArrowLeft, Upload,
   ExternalLink, CheckCircle, PlayCircle, Loader2, Edit3, X,
   MessageSquare, User, GraduationCap, Volume2, Download, Printer
 } from 'lucide-react';
@@ -56,13 +56,13 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showAddLecture, setShowAddLecture] = useState(false);
-  
+
   const [newSubName, setNewSubName] = useState('');
   const [lectureTitle, setLectureTitle] = useState('');
   const [lectureType, setLectureType] = useState<'file' | 'link'>('link');
   const [lectureContent, setLectureContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  
+
   const [editingLectureId, setEditingLectureId] = useState<number | null>(null);
 
   const [explainingLec, setExplainingLec] = useState<Lecture | null>(null);
@@ -131,7 +131,7 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
 
   const extractTextFromLecture = async (lecture: Lecture): Promise<string> => {
     if (lecture.type === 'link') return `Lecture content: ${lecture.title}`;
-    
+
     if (lecture.content.startsWith('data:application/pdf')) {
       try {
         const pdfjs = (window as any).pdfjsLib;
@@ -139,7 +139,7 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
         const binary = atob(base64);
         const array = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
-        
+
         const pdf = await pdfjs.getDocument({ data: array }).promise;
         let text = '';
         for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
@@ -159,10 +159,10 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
     setExplainingLec(lecture);
     setIsExplaining(true);
     setExplanation('');
-    
+
     try {
       const text = await extractTextFromLecture(lecture);
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
       const prompt = `You are an expert in simplifying complex sciences. Turn the following content into a fun and highly simplified educational dialogue between 'Professor' (a wise and friendly teacher) and 'Student' (a curious smart student). 
       The dialogue must explain all the basic concepts mentioned in the text in a 'Storyteller' style.
       
@@ -191,7 +191,7 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
       alert(lang === 'ar' ? "يرجى كتابة العنوان وإضافة الرابط أو الملف" : "Please fill all details");
       return;
     }
-    
+
     let updated;
     if (editingLectureId) {
       updated = await db.editLecture(selectedSubjectId, editingLectureId, {
@@ -206,7 +206,7 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
         content: lectureContent
       });
     }
-    
+
     setSubjects(updated);
     setLectureTitle('');
     setLectureContent('');
@@ -289,52 +289,52 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
 
         {explainingLec && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-xl animate-in fade-in">
-             <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-[3.5rem] shadow-2xl relative overflow-hidden flex flex-col border border-white/10">
-                <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center bg-indigo-600 text-white">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner"><GraduationCap size={24} /></div>
-                      <div>
-                        <h3 className="text-xl font-black">{lang === 'ar' ? 'حوار شرح المحاضرة' : 'Lecture Explanation Dialogue'}</h3>
-                        <p className="text-xs opacity-80">{explainingLec.title}</p>
-                      </div>
-                   </div>
-                   <button onClick={() => setExplainingLec(null)} className="p-3 hover:bg-white/10 rounded-2xl transition-all"><X size={24} /></button>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-[3.5rem] shadow-2xl relative overflow-hidden flex flex-col border border-white/10">
+              <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center bg-indigo-600 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shadow-inner"><GraduationCap size={24} /></div>
+                  <div>
+                    <h3 className="text-xl font-black">{lang === 'ar' ? 'حوار شرح المحاضرة' : 'Lecture Explanation Dialogue'}</h3>
+                    <p className="text-xs opacity-80">{explainingLec.title}</p>
+                  </div>
                 </div>
+                <button onClick={() => setExplainingLec(null)} className="p-3 hover:bg-white/10 rounded-2xl transition-all"><X size={24} /></button>
+              </div>
 
-                <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar bg-slate-50 dark:bg-slate-950">
-                   {isExplaining ? (
-                     <div className="h-full flex flex-col items-center justify-center space-y-6">
-                        <div className="w-20 h-20 border-8 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-lg font-black text-indigo-600 animate-pulse">{t.subjects_lec_explaining}</p>
-                     </div>
-                   ) : (
-                     <div className="space-y-6">
-                        {explanation.split('\n').map((line, idx) => {
-                          const isDr = line.includes('الدكتور:') || line.includes('Professor:');
-                          const isStudent = line.includes('الطالب:') || line.includes('Student:');
-                          if (!isDr && !isStudent) return <p key={idx} className="text-slate-500 font-bold italic text-center py-2">{line}</p>;
-                          
-                          return (
-                            <div key={idx} className={`flex gap-4 items-start animate-in slide-in-from-bottom-2 duration-500 ${isDr ? (lang === 'ar' ? 'flex-row' : 'flex-row-reverse') : (lang === 'ar' ? 'flex-row-reverse' : 'flex-row')}`}>
-                               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${isDr ? 'bg-indigo-600 text-white' : 'bg-emerald-500 text-white'}`}>
-                                  {isDr ? <GraduationCap size={24} /> : <User size={24} />}
-                               </div>
-                               <div className={`p-6 rounded-[2rem] shadow-sm max-w-[80%] border-2 ${isDr ? 'bg-white border-indigo-100' : 'bg-white border-emerald-100'}`}>
-                                  <p className="font-black text-xs mb-1 opacity-50">{isDr ? (lang === 'ar' ? 'الدكتور' : 'Professor') : (lang === 'ar' ? 'الطالب ذكي' : 'Smart Student')}</p>
-                                  <p className="text-lg font-bold leading-relaxed text-slate-800 dark:text-white">{line.split(': ')[1]}</p>
-                               </div>
-                            </div>
-                          );
-                        })}
-                     </div>
-                   )}
-                </div>
+              <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar bg-slate-50 dark:bg-slate-950">
+                {isExplaining ? (
+                  <div className="h-full flex flex-col items-center justify-center space-y-6">
+                    <div className="w-20 h-20 border-8 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-lg font-black text-indigo-600 animate-pulse">{t.subjects_lec_explaining}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {explanation.split('\n').map((line, idx) => {
+                      const isDr = line.includes('الدكتور:') || line.includes('Professor:');
+                      const isStudent = line.includes('الطالب:') || line.includes('Student:');
+                      if (!isDr && !isStudent) return <p key={idx} className="text-slate-500 font-bold italic text-center py-2">{line}</p>;
 
-                <div className="p-8 border-t dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-center gap-4">
-                   <button onClick={() => window.print()} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-indigo-50 transition-all"><Printer size={18} /> {lang === 'ar' ? 'طباعة الشرح' : 'Print Explanation'}</button>
-                   <button onClick={() => setExplainingLec(null)} className="px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">{lang === 'ar' ? 'فهمت، شكراً!' : 'Got it, Thanks!'}</button>
-                </div>
-             </div>
+                      return (
+                        <div key={idx} className={`flex gap-4 items-start animate-in slide-in-from-bottom-2 duration-500 ${isDr ? (lang === 'ar' ? 'flex-row' : 'flex-row-reverse') : (lang === 'ar' ? 'flex-row-reverse' : 'flex-row')}`}>
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ${isDr ? 'bg-indigo-600 text-white' : 'bg-emerald-500 text-white'}`}>
+                            {isDr ? <GraduationCap size={24} /> : <User size={24} />}
+                          </div>
+                          <div className={`p-6 rounded-[2rem] shadow-sm max-w-[80%] border-2 ${isDr ? 'bg-white border-indigo-100' : 'bg-white border-emerald-100'}`}>
+                            <p className="font-black text-xs mb-1 opacity-50">{isDr ? (lang === 'ar' ? 'الدكتور' : 'Professor') : (lang === 'ar' ? 'الطالب ذكي' : 'Smart Student')}</p>
+                            <p className="text-lg font-bold leading-relaxed text-slate-800 dark:text-white">{line.split(': ')[1]}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 border-t dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-center gap-4">
+                <button onClick={() => window.print()} className="px-8 py-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-indigo-50 transition-all"><Printer size={18} /> {lang === 'ar' ? 'طباعة الشرح' : 'Print Explanation'}</button>
+                <button onClick={() => setExplainingLec(null)} className="px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">{lang === 'ar' ? 'فهمت، شكراً!' : 'Got it, Thanks!'}</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -368,8 +368,8 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
           ))}
           {selectedSubject.lectures.length === 0 && (
             <div className="py-32 text-center opacity-30 border-4 border-dashed rounded-[4rem] border-slate-200">
-               <BookOpen size={64} className="mx-auto mb-4" />
-               <p className="text-xl font-black">{t.subjects_empty}</p>
+              <BookOpen size={64} className="mx-auto mb-4" />
+              <p className="text-xl font-black">{t.subjects_empty}</p>
             </div>
           )}
         </div>

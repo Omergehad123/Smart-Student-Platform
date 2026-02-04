@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Mic, Trash2, Tag, Plus, FileAudio, Sparkles, Loader2, 
+import {
+  Mic, Trash2, Tag, Plus, FileAudio, Sparkles, Loader2,
   X, Upload, Square, CheckCircle2, Search, Volume2, Hash,
   Wand2, FileText, Languages, MessageSquarePlus, Globe
 } from 'lucide-react';
@@ -48,16 +48,16 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
   const [loading, setLoading] = useState(false);
   const [translatingId, setTranslatingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [processedResult, setProcessedResult] = useState<{title: string, text: string, translation?: string} | null>(null);
-  
+  const [processedResult, setProcessedResult] = useState<{ title: string, text: string, translation?: string } | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<any>(null);
 
-  useEffect(() => { 
+  useEffect(() => {
     const loadNotes = async () => {
       try {
         const n = await db.getNotes();
@@ -80,20 +80,20 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       const chunks: BlobPart[] = [];
-      
+
       mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
         setAudioBlob(blob);
       };
-      
+
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
       setProcessedResult(null);
       timerRef.current = setInterval(() => setRecordingTime(p => p + 1), 1000);
-    } catch (err) { 
-      alert(t.notes_mic_allow); 
+    } catch (err) {
+      alert(t.notes_mic_allow);
     }
   };
 
@@ -110,8 +110,8 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
     if (!audioBlob) return;
     setLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY });
-      
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+
       const blobToBase64 = (blob: Blob): Promise<string> => {
         return new Promise((resolve) => {
           const reader = new FileReader();
@@ -121,17 +121,17 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
       };
 
       const base64Data = await blobToBase64(audioBlob);
-      
+
       // Prompt exactly as requested by user for Arabic summary + English translation
       const prompt = `قم بتفريغ هذا المقطع الصوتي بدقة. ثم لخصه في عنوان جذاب ونقاط واضحة باللغة العربية. وأيضاً قم بترجمة الملخص إلى اللغة الإنجليزية. أجب بتنسيق JSON حصراً: {"title": "عنوان الملاحظة", "text": "التفريغ والملخص بالعربي", "translation": "English Translation"}`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: { 
+        contents: {
           parts: [
-            { inlineData: { data: base64Data, mimeType: audioBlob.type || 'audio/webm' } }, 
+            { inlineData: { data: base64Data, mimeType: audioBlob.type || 'audio/webm' } },
             { text: prompt }
-          ] 
+          ]
         },
         config: { responseMimeType: "application/json" }
       });
@@ -142,11 +142,11 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
         text: result.text || (lang === 'ar' ? "لم يتم استخراج نص واضح." : "No clear text extracted."),
         translation: result.translation
       });
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
-      alert(lang === 'ar' ? "فشل التحويل الذكي، يرجى المحاولة مرة أخرى." : "AI conversion failed."); 
-    } finally { 
-      setLoading(false); 
+      alert(lang === 'ar' ? "فشل التحويل الذكي، يرجى المحاولة مرة أخرى." : "AI conversion failed.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -154,13 +154,13 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
     if (note.translation) return;
     setTranslatingId(note.id);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
       const prompt = `Translate the following Arabic educational note into clear, professional English:\n\n${note.text}\n\nReturn ONLY the translated text.`;
       const res = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt
       });
-      
+
       const translation = res.text || "";
       const updatedNotes = notes.map(n => n.id === note.id ? { ...n, translation } : n);
       setNotes(updatedNotes);
@@ -193,13 +193,13 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
 
   const speakNote = async (text: string) => {
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
       const res = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text: `اقرأ الملاحظة بوضوح: ${text}` }] }],
-        config: { 
-          responseModalities: [Modality.AUDIO], 
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } 
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
         },
       });
       const audioData = res.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
@@ -218,8 +218,8 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
     }
   };
 
-  const filteredNotes = (notes || []).filter(n => 
-    (selectedCategory === t.notes_all || n.category === selectedCategory) && 
+  const filteredNotes = (notes || []).filter(n =>
+    (selectedCategory === t.notes_all || n.category === selectedCategory) &&
     (n.title.toLowerCase().includes(searchQuery.toLowerCase()) || n.text.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -282,12 +282,12 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
                   <Sparkles size={24} className="text-amber-500 shrink-0" />
                   <span className="truncate">{note.title}</span>
                 </h4>
-                
+
                 <div className="space-y-4 flex-1 mb-6">
                   <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-3xl border dark:border-slate-700 shadow-inner">
                     <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-bold text-sm whitespace-pre-wrap">{note.text}</p>
                   </div>
-                  
+
                   {note.translation && (
                     <div className="bg-indigo-50/30 dark:bg-indigo-900/10 p-6 rounded-3xl border border-indigo-100/50 shadow-inner animate-in slide-in-from-top-2">
                       <p className="text-xs font-black text-indigo-400 mb-2 uppercase tracking-widest flex items-center gap-2">
@@ -309,104 +309,104 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in">
-           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3.5rem] p-10 shadow-2xl relative animate-in zoom-in overflow-y-auto max-h-[90vh] custom-scrollbar">
-              <button onClick={() => setIsModalOpen(false)} className={`absolute top-8 ${lang === 'ar' ? 'left-8' : 'right-8'} text-slate-400 hover:text-rose-500 transition-all p-2`}><X size={24} /></button>
-              
-              <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
-                  <Mic size={32} />
-                </div>
-                <h3 className="text-3xl font-black mb-2 dark:text-white">{t.notes_recording}</h3>
-                <p className="text-slate-400 font-bold text-sm">{t.notes_recording_desc}</p>
-              </div>
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3.5rem] p-10 shadow-2xl relative animate-in zoom-in overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <button onClick={() => setIsModalOpen(false)} className={`absolute top-8 ${lang === 'ar' ? 'left-8' : 'right-8'} text-slate-400 hover:text-rose-500 transition-all p-2`}><X size={24} /></button>
 
-              {!processedResult ? (
-                <div className="space-y-8">
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-10 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center gap-6 relative overflow-hidden">
-                    {isRecording && (
-                      <div className="absolute inset-0 bg-rose-500/5 flex items-center justify-center pointer-events-none">
-                        <div className="w-48 h-48 bg-rose-500/20 rounded-full animate-ping"></div>
-                      </div>
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                <Mic size={32} />
+              </div>
+              <h3 className="text-3xl font-black mb-2 dark:text-white">{t.notes_recording}</h3>
+              <p className="text-slate-400 font-bold text-sm">{t.notes_recording_desc}</p>
+            </div>
+
+            {!processedResult ? (
+              <div className="space-y-8">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-10 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center gap-6 relative overflow-hidden">
+                  {isRecording && (
+                    <div className="absolute inset-0 bg-rose-500/5 flex items-center justify-center pointer-events-none">
+                      <div className="w-48 h-48 bg-rose-500/20 rounded-full animate-ping"></div>
+                    </div>
+                  )}
+                  <div className="text-center z-10">
+                    <div className={`text-5xl font-mono font-black mb-2 ${isRecording ? 'text-rose-600' : 'dark:text-white'}`}>
+                      {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 z-10">
+                    {!isRecording ? (
+                      <button onClick={startRecording} className="w-24 h-24 bg-indigo-600 text-white rounded-[2.5rem] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all">
+                        <Mic size={40} />
+                      </button>
+                    ) : (
+                      <button onClick={stopRecording} className="w-24 h-24 bg-rose-500 text-white rounded-[2.5rem] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all">
+                        <Square size={40} />
+                      </button>
                     )}
-                    <div className="text-center z-10">
-                      <div className={`text-5xl font-mono font-black mb-2 ${isRecording ? 'text-rose-600' : 'dark:text-white'}`}>
-                        {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                    <label className="w-24 h-24 bg-white dark:bg-slate-700 text-slate-600 dark:text-white rounded-[2.5rem] flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition-all border border-slate-100">
+                      <Upload size={40} />
+                      <input type="file" className="hidden" accept="audio/*" onChange={e => { if (e.target.files?.[0]) { setAudioBlob(e.target.files[0]); } }} />
+                    </label>
+                  </div>
+                  {audioBlob && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-bottom-2">
+                      <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white"><FileAudio size={20} /></div>
+                      <div>
+                        <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">{lang === 'ar' ? 'المقطع جاهز للتحليل' : 'Audio ready for analysis'}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{(audioBlob.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     </div>
-                    <div className="flex gap-4 z-10">
-                      {!isRecording ? (
-                        <button onClick={startRecording} className="w-24 h-24 bg-indigo-600 text-white rounded-[2.5rem] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all">
-                          <Mic size={40} />
-                        </button>
-                      ) : (
-                        <button onClick={stopRecording} className="w-24 h-24 bg-rose-500 text-white rounded-[2.5rem] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all">
-                          <Square size={40} />
-                        </button>
-                      )}
-                      <label className="w-24 h-24 bg-white dark:bg-slate-700 text-slate-600 dark:text-white rounded-[2.5rem] flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition-all border border-slate-100">
-                        <Upload size={40} />
-                        <input type="file" className="hidden" accept="audio/*" onChange={e => { if(e.target.files?.[0]) { setAudioBlob(e.target.files[0]); } }} />
-                      </label>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleAIConvert}
+                  disabled={!audioBlob || loading}
+                  className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xl shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.01] active:scale-95 disabled:opacity-50 transition-all"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={28} /> : <Wand2 size={28} />}
+                  {t.notes_save_btn}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-8 animate-in zoom-in">
+                <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[3rem] border border-indigo-100 dark:border-slate-700">
+                  <div className="flex items-center gap-3 mb-6 text-indigo-600">
+                    <Globe size={24} className="animate-pulse" />
+                    <h4 className="font-black text-xl">{lang === 'ar' ? 'المحتوى المستخرج والمترجم' : 'Extracted Content'}</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white dark:bg-slate-700 rounded-2xl border-r-4 border-indigo-500">
+                      <p className="text-xs font-black text-slate-400 mb-1 uppercase">{lang === 'ar' ? 'العنوان المقترح' : 'Suggested Title'}</p>
+                      <p className="font-black text-lg dark:text-white">{processedResult.title}</p>
                     </div>
-                    {audioBlob && (
-                      <div className="bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-bottom-2">
-                        <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white"><FileAudio size={20} /></div>
-                        <div>
-                          <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">{lang === 'ar' ? 'المقطع جاهز للتحليل' : 'Audio ready for analysis'}</p>
-                          <p className="text-[10px] font-bold text-slate-400">{(audioBlob.size / 1024 / 1024).toFixed(2)} MB</p>
-                        </div>
+                    <div className="p-4 bg-white dark:bg-slate-700 rounded-2xl">
+                      <p className="text-xs font-black text-slate-400 mb-1 uppercase">{lang === 'ar' ? 'النص العربي والملخص' : 'Arabic Text & Summary'}</p>
+                      <p className="font-bold text-sm leading-relaxed dark:text-slate-200">{processedResult.text}</p>
+                    </div>
+                    {processedResult.translation && (
+                      <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100">
+                        <p className="text-xs font-black text-indigo-400 mb-1 uppercase tracking-widest">English Translation</p>
+                        <p className="font-medium text-sm leading-relaxed dark:text-slate-300 italic">{processedResult.translation}</p>
                       </div>
                     )}
                   </div>
-
-                  <button 
-                    onClick={handleAIConvert} 
-                    disabled={!audioBlob || loading}
-                    className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xl shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.01] active:scale-95 disabled:opacity-50 transition-all"
-                  >
-                    {loading ? <Loader2 className="animate-spin" size={28} /> : <Wand2 size={28} />}
-                    {t.notes_save_btn}
-                  </button>
                 </div>
-              ) : (
-                <div className="space-y-8 animate-in zoom-in">
-                   <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[3rem] border border-indigo-100 dark:border-slate-700">
-                      <div className="flex items-center gap-3 mb-6 text-indigo-600">
-                        <Globe size={24} className="animate-pulse" />
-                        <h4 className="font-black text-xl">{lang === 'ar' ? 'المحتوى المستخرج والمترجم' : 'Extracted Content'}</h4>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="p-4 bg-white dark:bg-slate-700 rounded-2xl border-r-4 border-indigo-500">
-                          <p className="text-xs font-black text-slate-400 mb-1 uppercase">{lang === 'ar' ? 'العنوان المقترح' : 'Suggested Title'}</p>
-                          <p className="font-black text-lg dark:text-white">{processedResult.title}</p>
-                        </div>
-                        <div className="p-4 bg-white dark:bg-slate-700 rounded-2xl">
-                          <p className="text-xs font-black text-slate-400 mb-1 uppercase">{lang === 'ar' ? 'النص العربي والملخص' : 'Arabic Text & Summary'}</p>
-                          <p className="font-bold text-sm leading-relaxed dark:text-slate-200">{processedResult.text}</p>
-                        </div>
-                        {processedResult.translation && (
-                          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100">
-                            <p className="text-xs font-black text-indigo-400 mb-1 uppercase tracking-widest">English Translation</p>
-                            <p className="font-medium text-sm leading-relaxed dark:text-slate-300 italic">{processedResult.translation}</p>
-                          </div>
-                        )}
-                      </div>
-                   </div>
 
-                   <div className="space-y-4">
-                      <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{lang === 'ar' ? 'اختر تصنيفاً لحفظ الملاحظة' : 'Select Category'}</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {categories.map(cat => (
-                          <button key={cat} onClick={() => saveFinalNote(cat)} className="py-4 bg-white dark:bg-slate-800 border-2 border-indigo-50 dark:border-slate-700 hover:border-indigo-600 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
-                            <Tag size={14} className="text-indigo-500" /> {cat}
-                          </button>
-                        ))}
-                      </div>
-                      <button onClick={() => setProcessedResult(null)} className="w-full py-4 text-slate-400 font-bold text-sm hover:text-rose-500 transition-colors">{lang === 'ar' ? 'إعادة المحاولة / مسح' : 'Retry / Clear'}</button>
-                   </div>
+                <div className="space-y-4">
+                  <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{lang === 'ar' ? 'اختر تصنيفاً لحفظ الملاحظة' : 'Select Category'}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {categories.map(cat => (
+                      <button key={cat} onClick={() => saveFinalNote(cat)} className="py-4 bg-white dark:bg-slate-800 border-2 border-indigo-50 dark:border-slate-700 hover:border-indigo-600 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <Tag size={14} className="text-indigo-500" /> {cat}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => setProcessedResult(null)} className="w-full py-4 text-slate-400 font-bold text-sm hover:text-rose-500 transition-colors">{lang === 'ar' ? 'إعادة المحاولة / مسح' : 'Retry / Clear'}</button>
                 </div>
-              )}
-           </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

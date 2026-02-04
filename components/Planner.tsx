@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar as CalendarIcon, Clock, Plus, Trash2, CheckCircle, Sparkles, 
+import {
+  Calendar as CalendarIcon, Clock, Plus, Trash2, CheckCircle, Sparkles,
   Wand2, Zap, AlertCircle, CalendarDays, List, Star, Loader2,
   X, CheckCircle2, Upload, FileText, ImageIcon
 } from 'lucide-react';
@@ -52,7 +52,7 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
         date: date.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'short' }),
         fullDate: date.toDateString(),
         isToday: date.toDateString() === now.toDateString(),
-        originalIdx: i 
+        originalIdx: i
       };
     });
   };
@@ -110,11 +110,11 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
     if (plannerFileContent) {
       contextData = plannerFileContent;
     } else {
-      const availableLectures = subjects.flatMap(s => 
-        s.lectures.filter(l => !l.isCompleted).map(l => ({ 
-          title: l.title, 
-          subject: s.name, 
-          color: s.color 
+      const availableLectures = subjects.flatMap(s =>
+        s.lectures.filter(l => !l.isCompleted).map(l => ({
+          title: l.title,
+          subject: s.name,
+          color: s.color
         }))
       );
       if (availableLectures.length === 0) {
@@ -126,7 +126,7 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
 
     setLoadingAI(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
       const prompt = `أنت أستاذ جامعي وخبير في تنظيم الوقت. قم بتحليل المحتوى التالي وتوليد خطة دراسية لـ ${planDuration} بمعدل ${dailyHours} ساعات يومياً تبدأ في ${startTime}.
       المحتوى المرجعي:
       ${contextData.substring(0, 15000)}
@@ -224,7 +224,7 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
 
           <div className="max-w-3xl mx-auto w-full">
             {!plannerFileContent ? (
-               <label className={`w-full py-12 bg-slate-50 dark:bg-slate-800 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-indigo-500 transition-all ${isProcessingPlannerFile ? 'opacity-50' : ''}`}>
+              <label className={`w-full py-12 bg-slate-50 dark:bg-slate-800 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-indigo-500 transition-all ${isProcessingPlannerFile ? 'opacity-50' : ''}`}>
                 {isProcessingPlannerFile ? <Loader2 className="animate-spin text-indigo-500" /> : <Upload className="text-slate-400" size={40} />}
                 <div className="text-center">
                   <p className="text-sm font-black text-slate-500 uppercase tracking-widest">رفع ملف المنهج (PDF / Syllabus / Image)</p>
@@ -233,20 +233,20 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
               </label>
             ) : (
               <div className="flex items-center justify-between p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-200 shadow-sm">
-                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><FileText size={28} /></div>
-                    <div>
-                      <p className="font-black text-base dark:text-white">{plannerFileName}</p>
-                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">المحتوى جاهز لتحليل الجدول</p>
-                    </div>
-                 </div>
-                 <button onClick={() => setPlannerFileContent(null)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><X size={24} /></button>
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><FileText size={28} /></div>
+                  <div>
+                    <p className="font-black text-base dark:text-white">{plannerFileName}</p>
+                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">المحتوى جاهز لتحليل الجدول</p>
+                  </div>
+                </div>
+                <button onClick={() => setPlannerFileContent(null)} className="p-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><X size={24} /></button>
               </div>
             )}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-right bg-slate-50 dark:bg-slate-800/50 p-10 rounded-[3rem] border dark:border-slate-700">
-             <div className="space-y-4">
+            <div className="space-y-4">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">معدل الدراسة اليومي</label>
               <input type="number" value={dailyHours} onChange={(e) => setDailyHours(parseInt(e.target.value))} className="w-full px-8 py-5 bg-white dark:bg-slate-800 rounded-2xl border-none font-black text-2xl dark:text-white shadow-sm focus:ring-2 focus:ring-indigo-500" />
             </div>
@@ -255,8 +255,8 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
               <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-8 py-5 bg-white dark:bg-slate-800 rounded-2xl border-none font-black text-2xl dark:text-white shadow-sm focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div className="space-y-4">
-               <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">مدة الخطة</label>
-               <select value={planDuration} onChange={(e) => setPlanDuration(e.target.value)} className="w-full px-8 py-5 bg-white dark:bg-slate-800 rounded-2xl border-none font-black text-lg dark:text-white shadow-sm focus:ring-2 focus:ring-indigo-500 appearance-none">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">مدة الخطة</label>
+              <select value={planDuration} onChange={(e) => setPlanDuration(e.target.value)} className="w-full px-8 py-5 bg-white dark:bg-slate-800 rounded-2xl border-none font-black text-lg dark:text-white shadow-sm focus:ring-2 focus:ring-indigo-500 appearance-none">
                 <option value="أسبوع">هذا الأسبوع</option>
                 <option value="شهر">خطة شهرية شاملة</option>
               </select>
@@ -283,23 +283,23 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
 
           <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-[4rem] p-12 shadow-2xl border border-slate-100 dark:border-slate-800 min-h-[650px] flex flex-col relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            
+
             <div className="flex justify-between items-center mb-12 relative z-10">
               <div>
                 <h4 className="text-3xl font-black dark:text-white">مهام {weekDays[selectedDayIdx].ar}</h4>
                 <p className="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest">{tasks.filter(t => t.dayIndex === selectedDayIdx).length} مهام مجدولة</p>
               </div>
-              <button 
-                onClick={() => { 
-                  setNewTaskDay(selectedDayIdx); 
-                  setIsTaskModalOpen(true); 
-                }} 
+              <button
+                onClick={() => {
+                  setNewTaskDay(selectedDayIdx);
+                  setIsTaskModalOpen(true);
+                }}
                 className="w-16 h-16 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center shadow-xl hover:scale-110 transition-all active:scale-90"
               >
                 <Plus size={32} />
               </button>
             </div>
-            
+
             <div className="flex-1 space-y-6 relative z-10">
               {tasks.filter(t => t.dayIndex === selectedDayIdx).map(task => (
                 <div key={task.id} className="group relative flex items-center gap-6 p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border-2 border-transparent hover:border-indigo-100 transition-all shadow-sm">
@@ -310,8 +310,8 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
                   <div className="flex-1 text-right">
                     <h5 className={`font-black text-xl transition-all ${task.status === 'completed' ? 'text-slate-400 line-through' : 'dark:text-white text-slate-800'}`}>{task.title}</h5>
                     <div className="flex gap-6 mt-2">
-                       <span className="text-xs font-black text-slate-400 flex items-center gap-1.5"><Clock size={14} className="text-indigo-500" /> {task.time}</span>
-                       <span className="text-xs font-black text-indigo-500 flex items-center gap-1.5"><Star size={14} /> {task.duration}</span>
+                      <span className="text-xs font-black text-slate-400 flex items-center gap-1.5"><Clock size={14} className="text-indigo-500" /> {task.time}</span>
+                      <span className="text-xs font-black text-indigo-500 flex items-center gap-1.5"><Star size={14} /> {task.duration}</span>
                     </div>
                   </div>
                   <button onClick={() => handleDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 p-4 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={20} /></button>
@@ -331,39 +331,39 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
       {/* Modal إضافة مهمة يدوية */}
       {isTaskModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-           <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[4rem] p-12 shadow-[0_50px_100px_rgba(0,0,0,0.3)] relative animate-in zoom-in font-cairo border-4 border-white/10" dir="rtl">
-              <button onClick={() => setIsTaskModalOpen(false)} className="absolute top-10 left-10 text-slate-400 hover:text-rose-500 transition-all p-2"><X size={32} /></button>
-              <div className="text-center mb-10">
-                <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6"><CalendarIcon size={40} /></div>
-                <h3 className="text-4xl font-black dark:text-white">إضافة مهمة جديدة</h3>
-                <p className="text-slate-500 font-bold mt-2">حدد تفاصيل نشاطك الدراسي لليوم</p>
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[4rem] p-12 shadow-[0_50px_100px_rgba(0,0,0,0.3)] relative animate-in zoom-in font-cairo border-4 border-white/10" dir="rtl">
+            <button onClick={() => setIsTaskModalOpen(false)} className="absolute top-10 left-10 text-slate-400 hover:text-rose-500 transition-all p-2"><X size={32} /></button>
+            <div className="text-center mb-10">
+              <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6"><CalendarIcon size={40} /></div>
+              <h3 className="text-4xl font-black dark:text-white">إضافة مهمة جديدة</h3>
+              <p className="text-slate-500 font-bold mt-2">حدد تفاصيل نشاطك الدراسي لليوم</p>
+            </div>
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">اسم المهمة</label>
+                <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="مثال: مراجعة الكيمياء العضوية" className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl font-black text-lg border-none dark:text-white focus:ring-4 focus:ring-indigo-100 transition-all" />
               </div>
-              <div className="space-y-8">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-3">
-                   <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">اسم المهمة</label>
-                   <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="مثال: مراجعة الكيمياء العضوية" className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl font-black text-lg border-none dark:text-white focus:ring-4 focus:ring-indigo-100 transition-all" />
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">وقت البدء</label>
-                    <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl border-none font-black text-xl dark:text-white shadow-inner" />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">اليوم</label>
-                    <select value={newTaskDay} onChange={e => setNewTaskDay(parseInt(e.target.value))} className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl border-none font-black text-lg dark:text-white appearance-none pr-10">
-                      {weekDays.map((d, i) => <option key={i} value={i}>{d.ar}</option>)}
-                    </select>
-                  </div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">وقت البدء</label>
+                  <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl border-none font-black text-xl dark:text-white shadow-inner" />
                 </div>
                 <div className="space-y-3">
-                   <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">المدة المتوقعة</label>
-                   <input value={newDuration} onChange={e => setNewDuration(e.target.value)} placeholder="مثال: ساعة ونصف" className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl font-black text-lg border-none dark:text-white shadow-inner" />
+                  <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">اليوم</label>
+                  <select value={newTaskDay} onChange={e => setNewTaskDay(parseInt(e.target.value))} className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl border-none font-black text-lg dark:text-white appearance-none pr-10">
+                    {weekDays.map((d, i) => <option key={i} value={i}>{d.ar}</option>)}
+                  </select>
                 </div>
-                <button onClick={handleAddTaskManually} className="w-full py-7 bg-indigo-600 text-white rounded-[2.5rem] font-black text-2xl shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-4 mt-4">
-                  <CheckCircle2 size={28} /> حفظ المهمة
-                </button>
               </div>
-           </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-400 px-2 tracking-[0.3em]">المدة المتوقعة</label>
+                <input value={newDuration} onChange={e => setNewDuration(e.target.value)} placeholder="مثال: ساعة ونصف" className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-800 rounded-3xl font-black text-lg border-none dark:text-white shadow-inner" />
+              </div>
+              <button onClick={handleAddTaskManually} className="w-full py-7 bg-indigo-600 text-white rounded-[2.5rem] font-black text-2xl shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-4 mt-4">
+                <CheckCircle2 size={28} /> حفظ المهمة
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

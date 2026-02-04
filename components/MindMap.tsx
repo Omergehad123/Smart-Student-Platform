@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Brain, Sparkles, Download, ZoomIn, ZoomOut, Move, 
+import {
+  Brain, Sparkles, Download, ZoomIn, ZoomOut, Move,
   Upload, X, FileUp, FileText, Image as ImageIcon, Loader2,
   RefreshCcw, Camera, FileDown, FileBox
 } from 'lucide-react';
@@ -13,7 +13,7 @@ export const MindMap: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [mapData, setMapData] = useState<any>(null);
   const [zoom, setZoom] = useState(1);
-  
+
   // File Upload States
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'pdf' | 'image' | 'text' | null>(null);
@@ -44,8 +44,8 @@ export const MindMap: React.FC = () => {
       if (file.type === 'application/pdf') {
         const pdfjs = (window as any).pdfjsLib;
         if (!pdfjs) {
-            alert("مكتبة معالجة الـ PDF قيد التحميل، يرجى المحاولة بعد لحظات.");
-            return;
+          alert("مكتبة معالجة الـ PDF قيد التحميل، يرجى المحاولة بعد لحظات.");
+          return;
         }
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
@@ -79,11 +79,11 @@ export const MindMap: React.FC = () => {
 
   const generateMap = async () => {
     if (!topic.trim() && !fileContent) return alert("يرجى إدخال موضوع أو رفع ملف أولاً");
-    
+
     setLoading(true);
-    setZoom(1); 
-    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY || '' });
-    
+    setZoom(1);
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY || '' });
+
     try {
       let contents: any = [];
       if (fileType === 'image' && fileContent) {
@@ -126,14 +126,14 @@ export const MindMap: React.FC = () => {
       setLoading(true);
       const originalTransform = canvasRef.current.style.transform;
       canvasRef.current.style.transform = 'scale(1)';
-      
+
       const canvas = await html2canvas(canvasRef.current, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         logging: false
       });
-      
+
       canvasRef.current.style.transform = originalTransform;
 
       const link = document.createElement('a');
@@ -164,14 +164,14 @@ export const MindMap: React.FC = () => {
 
       const renderNodePPT = (node: any, level: number, startY: number): number => {
         slide.addText(node.name, {
-            x: 0.5 + (level * 0.5), y: startY, w: '80%', h: 0.4,
-            fontSize: 18 - (level * 2), color: '334155', bullet: level > 0, align: 'right'
+          x: 0.5 + (level * 0.5), y: startY, w: '80%', h: 0.4,
+          fontSize: 18 - (level * 2), color: '334155', bullet: level > 0, align: 'right'
         });
         let currentY = startY + 0.4;
         if (node.children) {
-            node.children.forEach((child: any) => {
-                currentY = renderNodePPT(child, level + 1, currentY);
-            });
+          node.children.forEach((child: any) => {
+            currentY = renderNodePPT(child, level + 1, currentY);
+          });
         }
         return currentY;
       };
@@ -237,11 +237,10 @@ export const MindMap: React.FC = () => {
 
   const Node: React.FC<{ item: any; level?: number }> = ({ item, level = 0 }) => (
     <div className="flex flex-col items-center">
-      <div className={`px-6 py-3 rounded-2xl font-bold shadow-lg mb-8 text-white transition-all hover:scale-105 border-2 border-white/10 ${
-        level === 0 ? 'bg-indigo-600 text-xl py-4 px-10' : 
-        level === 1 ? 'bg-purple-500' : 
-        level === 2 ? 'bg-blue-500' : 'bg-emerald-500 text-sm'
-      }`}>
+      <div className={`px-6 py-3 rounded-2xl font-bold shadow-lg mb-8 text-white transition-all hover:scale-105 border-2 border-white/10 ${level === 0 ? 'bg-indigo-600 text-xl py-4 px-10' :
+          level === 1 ? 'bg-purple-500' :
+            level === 2 ? 'bg-blue-500' : 'bg-emerald-500 text-sm'
+        }`}>
         {item.name}
       </div>
       {item.children && item.children.length > 0 && (
@@ -261,14 +260,14 @@ export const MindMap: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Brain className="absolute right-5 top-1/2 -translate-y-1/2 text-indigo-500" size={24} />
-            <input 
+            <input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="اكتب موضوعك أو ارفع ملفاً..."
               className="w-full pr-14 pl-6 py-5 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl dark:text-white focus:ring-2 focus:ring-indigo-500 text-lg font-bold"
             />
           </div>
-          <button 
+          <button
             onClick={generateMap}
             disabled={loading || isProcessingFile}
             className="px-10 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 hover:scale-[1.02] transition-all disabled:opacity-50"
@@ -289,16 +288,16 @@ export const MindMap: React.FC = () => {
             </label>
           ) : (
             <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-200">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
-                    {fileType === 'pdf' ? <FileText /> : fileType === 'image' ? <ImageIcon /> : <FileText />}
-                  </div>
-                  <div>
-                    <p className="font-black text-sm dark:text-white truncate max-w-[200px]">{fileName}</p>
-                    <p className="text-[10px] font-black text-indigo-500 uppercase">تم التحميل</p>
-                  </div>
-               </div>
-               <button onClick={() => { setFileContent(null); setFileName(''); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><X /></button>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+                  {fileType === 'pdf' ? <FileText /> : fileType === 'image' ? <ImageIcon /> : <FileText />}
+                </div>
+                <div>
+                  <p className="font-black text-sm dark:text-white truncate max-w-[200px]">{fileName}</p>
+                  <p className="text-[10px] font-black text-indigo-500 uppercase">تم التحميل</p>
+                </div>
+              </div>
+              <button onClick={() => { setFileContent(null); setFileName(''); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"><X /></button>
             </div>
           )}
         </div>
@@ -307,9 +306,9 @@ export const MindMap: React.FC = () => {
       <div className="min-h-[600px] bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 relative flex flex-col overflow-hidden">
         {mapData ? (
           <div className="flex-1 overflow-auto p-20 flex items-start justify-center cursor-move no-scrollbar">
-            <div 
-              ref={canvasRef} 
-              className="p-10 flex items-start justify-center origin-top transition-transform duration-200" 
+            <div
+              ref={canvasRef}
+              className="p-10 flex items-start justify-center origin-top transition-transform duration-200"
               style={{ transform: `scale(${zoom})` }}
             >
               <Node item={mapData} />

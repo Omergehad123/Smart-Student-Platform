@@ -3,8 +3,8 @@ import { GoogleGenAI } from "@google/genai";
 
 export const getAIResponse = async (prompt: string, context: string = "عام"): Promise<string> => {
   // المفتاح يتم سحبه من البيئة لضمان الأمان وعدم تسريبه على GitHub
-  const apiKey = import.meta.env.VITE_APi_kEY;
-  
+  const apiKey = import.meta.env.VITE_API_kEY;
+
   if (!apiKey) {
     console.error("APi_kEY is missing from environment variables.");
     return "نظام الذكاء الاصطناعي بانتظار إعداد مفتاح التشغيل (APi_kEY) في إعدادات المنصة.";
@@ -12,7 +12,7 @@ export const getAIResponse = async (prompt: string, context: string = "عام"):
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,

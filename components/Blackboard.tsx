@@ -1,388 +1,562 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-    Pen, Eraser, Type, Square, 
-    Highlighter, Wand2, Image as ImageIcon,
-    Undo2, Redo2, Download, Trash2, 
-    ChevronRight, ChevronLeft, FilePlus,
-    Users, Link as LinkIcon, Settings, Loader2,
-    Check, X as CloseIcon, Star, ArrowUpRight, MousePointer2,
-    Triangle, Circle, Minus, StickyNote, Grid3X3, AlignJustify, 
-    Maximize2, Camera, CheckCircle2, XCircle, Printer, Move
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import {
+  Pen, Eraser, Highlighter, Type, Square, Wand2, 
+  Undo2, Trash2, Image as ImageIcon,
+  Users, ChevronLeft, ChevronRight, 
+  FilePlus, X, CheckCircle2, Share2, Printer, Lock, Unlock,
+  Circle, StickyNote, Upload, FileText, RefreshCcw as RefreshIcon, Loader2,
+  Download, Cloud, Link as LinkIcon, Copy, Sparkles
 } from 'lucide-react';
-import { supabase } from '../services/db';
+import { createClient } from '@supabase/supabase-js';
 import { translations } from '../i18n';
+import { CONFIG } from '../services/config';
 
-// --- Helpers ---
-const generateId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
+const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
-const drawBackground = (ctx: CanvasRenderingContext2D, width: number, height: number, type: string, theme: 'green' | 'black' | 'white') => {
-    ctx.save();
-    // Base Colors
-    if (theme === 'green') ctx.fillStyle = '#064e3b';
-    else if (theme === 'black') ctx.fillStyle = '#0f172a';
-    else ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Chalkboard texture effect (Natural look)
-    if (theme !== 'white') {
-        ctx.globalAlpha = 0.04;
-        for (let i = 0; i < 300; i++) {
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1.0;
-    }
-
-    ctx.strokeStyle = theme === 'white' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'; 
-    ctx.lineWidth = 1;
-
-    if (type === 'lines') {
-        const spacing = 40;
-        ctx.beginPath();
-        for (let y = spacing; y < height; y += spacing) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
-        ctx.stroke();
-    } else if (type === 'grid') {
-        const spacing = 50;
-        ctx.beginPath();
-        for (let x = spacing; x < width; x += spacing) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
-        for (let y = spacing; y < height; y += spacing) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
-        ctx.stroke();
-    } else if (type === 'dots') {
-        const spacing = 40;
-        ctx.fillStyle = theme === 'white' ? '#cbd5e1' : 'rgba(255,255,255,0.15)';
-        for (let x = spacing; x < width; x += spacing) {
-            for (let y = spacing; y < height; y += spacing) {
-                ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI * 2); ctx.fill();
-            }
-        }
-    }
-    ctx.restore();
-};
-
-const drawShape = (ctx: CanvasRenderingContext2D, start: any, end: any, type: string, fill: boolean, isChalk: boolean) => {
-    const width = end.x - start.x;
-    const height = end.y - start.y;
-    const centerX = start.x + width / 2;
-    const centerY = start.y + height / 2;
-    
-    if (isChalk) {
-        ctx.setLineDash([2, 4]);
-        ctx.shadowBlur = 1;
-        ctx.shadowColor = ctx.strokeStyle as string;
-    }
-
-    ctx.beginPath();
-    if (type === 'rectangle') ctx.rect(start.x, start.y, width, height);
-    else if (type === 'circle') ctx.ellipse(centerX, centerY, Math.abs(width) / 2, Math.abs(height) / 2, 0, 0, 2 * Math.PI);
-    else if (type === 'triangle') {
-        ctx.moveTo(centerX, start.y); ctx.lineTo(start.x, end.y); ctx.lineTo(end.x, end.y); ctx.closePath();
-    } else if (type === 'arrow') {
-        const angle = Math.atan2(end.y - start.y, end.x - start.x);
-        const headLen = 15;
-        ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y);
-        ctx.moveTo(end.x, end.y);
-        ctx.lineTo(end.x - headLen * Math.cos(angle - Math.PI / 6), end.y - headLen * Math.sin(angle - Math.PI / 6));
-        ctx.moveTo(end.x, end.y);
-        ctx.lineTo(end.x - headLen * Math.cos(angle + Math.PI / 6), end.y - headLen * Math.sin(angle + Math.PI / 6));
-    } else if (type === 'line') {
-        ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y);
-    } else if (type === 'star') {
-        const spikes = 5; const outerR = Math.min(Math.abs(width), Math.abs(height)) / 2; const innerR = outerR / 2;
-        let rot = Math.PI / 2 * 3; let x = centerX; let y = centerY; const step = Math.PI / spikes;
-        ctx.moveTo(centerX, centerY - outerR);
-        for (let i = 0; i < spikes; i++) {
-            x = centerX + Math.cos(rot) * outerR; y = centerY + Math.sin(rot) * outerR; ctx.lineTo(x, y); rot += step;
-            x = centerX + Math.cos(rot) * innerR; y = centerY + Math.sin(rot) * innerR; ctx.lineTo(x, y); rot += step;
-        }
-        ctx.closePath();
-    } else if (type === 'check') {
-        const size = Math.min(Math.abs(width), Math.abs(height)); const pad = size * 0.2;
-        ctx.moveTo(start.x + pad, centerY); ctx.lineTo(centerX, end.y - pad); ctx.lineTo(end.x - pad, start.y + pad);
-    } else if (type === 'cross') {
-        const pad = Math.min(Math.abs(width), Math.abs(height)) * 0.2;
-        ctx.moveTo(start.x + pad, start.y + pad); ctx.lineTo(end.x - pad, end.y - pad);
-        ctx.moveTo(end.x - pad, start.y + pad); ctx.lineTo(start.x + pad, end.y - pad);
-    }
-
-    if (fill && !['arrow', 'line', 'check', 'cross'].includes(type)) ctx.fill();
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.shadowBlur = 0;
-};
+const COLORS = ['#ffffff', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#000000'];
 
 export const Blackboard: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
-    const t = translations[lang];
-    const [currentTool, setCurrentTool] = useState('pen');
-    const [theme, setTheme] = useState<'green' | 'black' | 'white'>('green');
-    const [settings, setSettings] = useState({ color: '#ffffff', thickness: 4, isFilled: false });
-    const [shapeType, setShapeType] = useState('rectangle');
-    const [gridType, setGridType] = useState('plain');
-    const [pages, setPages] = useState<string[]>(['']);
-    const [currentPageIdx, setCurrentPageIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tempRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const channelRef = useRef<any>(null);
+
+  const [tool, setTool] = useState('pen');
+  const [settings, setSettings] = useState({ color: '#ffffff', thickness: 4 });
+  const [theme, setTheme] = useState<'green' | 'black' | 'white'>('green');
+  
+  const [pages, setPages] = useState<string[]>(['']);
+  const [currentPage, setPage] = useState(0);
+  
+  const [pdfDoc, setPdfDoc] = useState<any>(null);
+  const [pdfPageNum, setPdfPageNum] = useState(1);
+  const [isPdfMode, setIsPdfMode] = useState(false);
+  const [isRendering, setIsRendering] = useState(false);
+
+  const [roomId, setRoomId] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
+  const [textInput, setTextInput] = useState<{ x: number, y: number, value: string, isSticky?: boolean } | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+
+  // Safe URL Hash Update
+  const updateUrlHash = (id: string) => {
+    try {
+      // استخدام hash بدلاً من replaceState لتجنب أخطاء SecurityError في البيئات المقيدة
+      window.location.hash = `room=${id}`;
+    } catch (e) {
+      console.warn("Could not update URL hash automatically, this is normal in some environments.");
+    }
+  };
+
+  // Connect to room function
+  const connectToRoom = useCallback((id: string) => {
+    if (!id.trim()) return;
     
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [startPoint, setStartPoint] = useState<any>(null);
-    const [lastPoint, setLastPoint] = useState<any>(null);
-    const [stickyNotes, setStickyNotes] = useState<any[]>([]);
-    const [textInput, setTextInput] = useState<any>(null);
+    // Clean up previous connection
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+    
+    const channel = supabase.channel(`whiteboard:${id}`, {
+      config: { broadcast: { self: false } }
+    });
 
-    const containerRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const tempCanvasRef = useRef<HTMLCanvasElement>(null);
-    const laserPoints = useRef<any[]>([]);
-
-    const COLORS = theme === 'white' ? 
-        ['#000000', '#ef4444', '#22c55e', '#3b82f6', '#4f46e5', '#a855f7'] : 
-        ['#ffffff', '#fbbf24', '#f87171', '#60a5fa', '#34d399', '#f472b6'];
-
-    const getCoords = (e: any) => {
-        if (!containerRef.current) return { x: 0, y: 0, nx: 0, ny: 0 };
-        const rect = containerRef.current.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const x = clientX - rect.left; const y = clientY - rect.top;
-        return { x, y, nx: x / rect.width, ny: y / rect.height };
-    };
-
-    useEffect(() => {
-        const animate = () => {
-            const tempCtx = tempCanvasRef.current?.getContext('2d');
-            if (!tempCtx || !tempCanvasRef.current) return;
-            if (!isDrawing || currentTool !== 'shape') {
-                tempCtx.clearRect(0, 0, tempCanvasRef.current.width, tempCanvasRef.current.height);
-            }
-            const now = Date.now();
-            laserPoints.current = laserPoints.current.filter(p => now - p.time < 800);
-            if (laserPoints.current.length > 0) {
-                tempCtx.lineCap = 'round';
-                for (let i = 1; i < laserPoints.current.length; i++) {
-                    const p1 = laserPoints.current[i-1]; const p2 = laserPoints.current[i];
-                    if (Math.abs(p1.x - p2.x) > 100) continue;
-                    const opacity = 1 - ((now - p2.time) / 800);
-                    tempCtx.beginPath(); tempCtx.moveTo(p1.x, p1.y); tempCtx.lineTo(p2.x, p2.y);
-                    tempCtx.lineWidth = 4; tempCtx.strokeStyle = `rgba(239, 68, 68, ${opacity})`; tempCtx.stroke();
-                }
-            }
-            requestAnimationFrame(animate);
+    channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!ctx || !canvas) return;
+      
+      if (payload.type === 'image') {
+        const img = new Image();
+        img.src = payload.data;
+        img.onload = () => {
+          // Clear and Redraw with received data
+          ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight);
+          const updated = [...pages];
+          updated[currentPage] = payload.data;
+          setPages(updated);
         };
-        const animId = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(animId);
-    }, [isDrawing, currentTool]);
+      }
+    }).subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        setRoomId(id);
+        setIsConnected(true);
+        setShowSessionModal(false);
+        updateUrlHash(id);
+      }
+    });
 
-    const startDrawing = (e: any) => {
-        const coords = getCoords(e);
-        if (currentTool === 'text') {
-            if (textInput?.visible) finishText();
-            else setTextInput({ x: coords.x, y: coords.y, nx: coords.nx, ny: coords.ny, visible: true, value: '' });
-            return;
-        }
-        setIsDrawing(true); setStartPoint(coords); setLastPoint(coords);
+    channelRef.current = channel;
+  }, [currentPage, pages]);
+
+  // Handle URL Room Auto-Join
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const urlRoom = params.get('room') || hashParams.get('room');
+    
+    if (urlRoom && !isConnected) {
+      connectToRoom(urlRoom);
+    }
+  }, [connectToRoom, isConnected]);
+
+  // Broadcast current state to others
+  const broadcastDraw = useCallback(() => {
+    if (isConnected && channelRef.current && canvasRef.current) {
+      try {
+        const data = canvasRef.current.toDataURL('image/png', 0.4); // compressed for speed
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'draw',
+          payload: { type: 'image', data }
+        });
+      } catch (e) {
+        console.error("Broadcast failed:", e);
+      }
+    }
+  }, [isConnected]);
+
+  // Initialize with High-DPI support
+  const initCanvas = useCallback(() => {
+    if (!containerRef.current || !canvasRef.current || !tempRef.current) return;
+    
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    const temp = tempRef.current;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const rect = container.getBoundingClientRect();
+    
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    
+    temp.width = rect.width * dpr;
+    temp.height = rect.height * dpr;
+    temp.style.width = `${rect.width}px`;
+    temp.style.height = `${rect.height}px`;
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+    }
+    
+    const tCtx = temp.getContext('2d');
+    if (tCtx) {
+      tCtx.scale(dpr, dpr);
+    }
+
+    redrawCurrentPage();
+  }, [currentPage, pages, theme]);
+
+  useEffect(() => {
+    initCanvas();
+    window.addEventListener('resize', initCanvas);
+    
+    if (!(window as any).pdfjsLib) {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = () => {
+        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      };
+      document.head.appendChild(script);
+    }
+    return () => {
+        window.removeEventListener('resize', initCanvas);
+        if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
+  }, [initCanvas]);
 
-    const draw = (e: any) => {
-        const coords = getCoords(e);
-        if (currentTool === 'laser') {
-            laserPoints.current.push({ x: coords.x, y: coords.y, time: Date.now() });
-            return;
-        }
-        if (!isDrawing || !lastPoint) return;
-        const ctx = canvasRef.current?.getContext('2d'); if (!ctx) return;
+  const redrawCurrentPage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !containerRef.current) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-        if (['pen', 'eraser', 'highlighter'].includes(currentTool)) {
-            ctx.beginPath();
-            ctx.strokeStyle = currentTool === 'eraser' ? (theme === 'white' ? '#ffffff' : (theme === 'green' ? '#064e3b' : '#0f172a')) : settings.color;
-            ctx.lineWidth = currentTool === 'highlighter' ? settings.thickness * 8 : settings.thickness;
-            ctx.globalAlpha = currentTool === 'highlighter' ? 0.35 : 1.0;
-            ctx.lineCap = 'round';
-            if (theme !== 'white' && currentTool === 'pen') {
-                ctx.shadowBlur = 1; ctx.shadowColor = settings.color; ctx.setLineDash([1, 2]);
+    const rect = containerRef.current.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    
+    ctx.fillStyle = theme === 'green' ? '#064e3b' : theme === 'black' ? '#0f172a' : '#ffffff';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    if (pages[currentPage]) {
+      const img = new Image();
+      img.src = pages[currentPage];
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      };
+    }
+  };
+
+  const saveCurrentState = () => {
+    if (!canvasRef.current) return;
+    const updatedPages = [...pages];
+    updatedPages[currentPage] = canvasRef.current.toDataURL('image/png', 1.0);
+    setPages(updatedPages);
+    broadcastDraw();
+  };
+
+  const generateInviteLink = () => {
+    // الحصول على الرابط الأساسي بدون الـ hash القديم
+    const baseUrl = window.location.href.split('#')[0].split('?')[0];
+    const inviteUrl = `${baseUrl}#room=${roomId}`;
+    
+    navigator.clipboard.writeText(inviteUrl).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    }).catch(err => {
+      alert(lang === 'ar' ? `الكود الخاص بك هو: ${roomId}` : `Your room code is: ${roomId}`);
+    });
+  };
+
+  const generateRandomCode = () => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setRoomId(code);
+    connectToRoom(code);
+  };
+
+  const getPos = (e: any) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx || !containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const hRatio = rect.width / img.width;
+        const vRatio = rect.height / img.height;
+        const ratio = Math.min(hRatio, vRatio);
+        const centerShift_x = (rect.width - img.width * ratio) / 2;
+        const centerShift_y = (rect.height - img.height * ratio) / 2;
+        ctx.drawImage(img, 0, 0, img.width, img.height,
+                           centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
+        saveCurrentState();
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const renderPdfPage = async (doc: any, num: number) => {
+    try {
+      setIsRendering(true);
+      const page = await doc.getPage(num);
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx || !containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const viewport = page.getViewport({ scale: 5.0 }); 
+      const renderCanvas = document.createElement('canvas');
+      const renderCtx = renderCanvas.getContext('2d')!;
+      renderCanvas.height = viewport.height;
+      renderCanvas.width = viewport.width;
+
+      await page.render({ canvasContext: renderCtx, viewport }).promise;
+      
+      ctx.fillStyle = theme === 'green' ? '#064e3b' : theme === 'black' ? '#0f172a' : '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.drawImage(renderCanvas, 0, 0, rect.width, rect.height);
+      saveCurrentState();
+    } catch (err) {
+      console.error("PDF HD Render Error:", err);
+    } finally {
+      setIsRendering(false);
+    }
+  };
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const pdfjs = (window as any).pdfjsLib;
+      if (!pdfjs) return alert("جاري تحميل محرك الـ PDF...");
+      const arrayBuffer = await file.arrayBuffer();
+      const doc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      setPdfDoc(doc);
+      setPdfPageNum(1);
+      setIsPdfMode(true);
+      await renderPdfPage(doc, 1);
+    } catch (err) { alert("خطأ في قراءة ملف الـ PDF"); }
+    e.target.value = '';
+  };
+
+  const startDraw = (e: any) => {
+    const pos = getPos(e);
+    setStartPos(pos);
+    
+    if (tool === 'text' || tool === 'sticky') {
+      setTextInput({ ...pos, value: '', isSticky: tool === 'sticky' });
+      return;
+    }
+
+    setIsDrawing(true);
+    const ctx = canvasRef.current!.getContext('2d')!;
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  };
+
+  const drawingAction = (e: any) => {
+    if (!isDrawing) return;
+    const pos = getPos(e);
+    const ctx = canvasRef.current!.getContext('2d')!;
+    const tCtx = tempRef.current!.getContext('2d')!;
+    const rect = tempRef.current!.getBoundingClientRect();
+
+    if (tool === 'pen' || tool === 'eraser' || tool === 'highlighter') {
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = settings.thickness;
+      ctx.strokeStyle = settings.color;
+      ctx.globalAlpha = tool === 'highlighter' ? 0.35 : 1;
+      
+      if (tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = settings.thickness * 6;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    } else if (tool === 'rect' || tool === 'circle') {
+      tCtx.clearRect(0, 0, rect.width, rect.height);
+      tCtx.strokeStyle = settings.color;
+      tCtx.lineWidth = settings.thickness;
+      tCtx.beginPath();
+      if (tool === 'rect') {
+        tCtx.strokeRect(startPos.x, startPos.y, pos.x - startPos.x, pos.y - startPos.y);
+      } else {
+        const radius = Math.sqrt(Math.pow(pos.x - startPos.x, 2) + Math.pow(pos.y - startPos.y, 2));
+        tCtx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
+        tCtx.stroke();
+      }
+    }
+  };
+
+  const stopDraw = (e: any) => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    
+    const pos = getPos(e);
+    const ctx = canvasRef.current!.getContext('2d')!;
+    const tCtx = tempRef.current!.getContext('2d')!;
+    const rect = tempRef.current!.getBoundingClientRect();
+
+    if (tool === 'rect' || tool === 'circle') {
+      tCtx.clearRect(0, 0, rect.width, rect.height);
+      ctx.strokeStyle = settings.color;
+      ctx.lineWidth = settings.thickness;
+      ctx.beginPath();
+      if (tool === 'rect') {
+        ctx.strokeRect(startPos.x, startPos.y, pos.x - startPos.x, pos.y - startPos.y);
+      } else {
+        const radius = Math.sqrt(Math.pow(pos.x - startPos.x, 2) + Math.pow(pos.y - startPos.y, 2));
+        ctx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
+    }
+    saveCurrentState();
+  };
+
+  const handleAddText = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && textInput && textInput.value.trim() !== '') {
+      const ctx = canvasRef.current?.getContext('2d');
+      if (ctx) {
+        if (textInput.isSticky) {
+          ctx.save();
+          ctx.fillStyle = '#fef08a';
+          ctx.shadowColor = 'rgba(0,0,0,0.25)';
+          ctx.shadowBlur = 20;
+          ctx.fillRect(textInput.x - 110, textInput.y - 110, 220, 220);
+          ctx.restore();
+          
+          ctx.fillStyle = '#1e293b';
+          ctx.font = 'bold 18px Cairo';
+          ctx.textAlign = 'center';
+          const words = textInput.value.split(' ');
+          let line = '';
+          let y = textInput.y - 40;
+          for(let n = 0; n < words.length; n++) {
+            line += words[n] + ' ';
+            if (line.length > 20) {
+              ctx.fillText(line, textInput.x, y);
+              line = ''; y += 25;
             }
-            ctx.moveTo(lastPoint.x, lastPoint.y); ctx.lineTo(coords.x, coords.y); ctx.stroke();
-            setLastPoint(coords); ctx.globalAlpha = 1.0; ctx.shadowBlur = 0; ctx.setLineDash([]);
-        } else if (currentTool === 'shape') {
-            const tempCtx = tempCanvasRef.current?.getContext('2d');
-            if (tempCtx) {
-                tempCtx.clearRect(0, 0, tempCanvasRef.current!.width, tempCanvasRef.current!.height);
-                tempCtx.strokeStyle = settings.color; tempCtx.lineWidth = settings.thickness; tempCtx.fillStyle = settings.color;
-                drawShape(tempCtx, startPoint, coords, shapeType, settings.isFilled, theme !== 'white');
-            }
+          }
+          ctx.fillText(line, textInput.x, y);
+        } else {
+          ctx.font = `bold ${settings.thickness * 7}px Cairo`;
+          ctx.fillStyle = settings.color;
+          ctx.textAlign = lang === 'ar' ? 'right' : 'left';
+          ctx.fillText(textInput.value, textInput.x, textInput.y);
         }
-    };
+        saveCurrentState();
+      }
+      setTextInput(null);
+    } else if (e.key === 'Escape') {
+      setTextInput(null);
+    }
+  };
 
-    const stopDrawing = () => {
-        if (!isDrawing) return;
-        setIsDrawing(false);
-        const ctx = canvasRef.current?.getContext('2d');
-        if (currentTool === 'shape' && ctx && tempCanvasRef.current) {
-            ctx.drawImage(tempCanvasRef.current, 0, 0);
-            tempCanvasRef.current.getContext('2d')?.clearRect(0, 0, tempCanvasRef.current.width, tempCanvasRef.current.height);
-        }
-        updatePageState();
-    };
+  return (
+    <div className="flex flex-col h-[calc(100vh-10rem)] bg-slate-100 dark:bg-slate-900 rounded-5xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 font-cairo">
+      {/* Precision Toolbar */}
+      <div className="h-20 bg-white dark:bg-slate-800 border-b flex items-center justify-between px-8 z-30 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl gap-1">
+            {[
+              { id: 'pen', icon: Pen, label: 'قلم' },
+              { id: 'highlighter', icon: Highlighter, label: 'تحديد' },
+              { id: 'eraser', icon: Eraser, label: 'ممحاة' },
+              { id: 'rect', icon: Square, label: 'مربع' },
+              { id: 'circle', icon: Circle, label: 'دائرة' },
+              { id: 'sticky', icon: StickyNote, label: 'بوست' },
+              { id: 'text', icon: Type, label: 'نص' }
+            ].map(t => (
+              <button key={t.id} onClick={() => setTool(t.id)} className={`p-2.5 rounded-xl transition-all ${tool === t.id ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'text-slate-400 hover:text-indigo-600'}`} title={t.label}>
+                <t.icon size={20} />
+              </button>
+            ))}
+            <div className="w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+            <button onClick={() => fileInputRef.current?.click()} className="p-2.5 rounded-xl text-emerald-500 hover:bg-emerald-50" title="رفع صورة">
+              <ImageIcon size={20} /><input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+            </button>
+            <button onClick={() => pdfInputRef.current?.click()} className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-50" title="رفع ملف PDF">
+              <FileText size={20} /><input type="file" ref={pdfInputRef} className="hidden" accept=".pdf" onChange={handlePdfUpload} />
+            </button>
+          </div>
 
-    const updatePageState = () => {
-        const newPages = [...pages]; 
-        newPages[currentPageIdx] = canvasRef.current?.toDataURL() || ''; 
-        setPages(newPages);
-    };
-
-    const finishText = () => {
-        if (!textInput || !textInput.value) { setTextInput(null); return; }
-        const ctx = canvasRef.current?.getContext('2d');
-        if (ctx) {
-            ctx.save(); ctx.font = `bold ${settings.thickness * 5}px 'Cairo'`; ctx.fillStyle = settings.color; ctx.textBaseline = 'top';
-            textInput.value.split('\n').forEach((line: string, i: number) => {
-                ctx.fillText(line, textInput.x, textInput.y + (i * settings.thickness * 6));
-            });
-            ctx.restore();
-            updatePageState();
-        }
-        setTextInput(null);
-    };
-
-    const handleClear = () => {
-        if (confirm(t.blackboard_clear_confirm)) {
-            const ctx = canvasRef.current?.getContext('2d');
-            if (ctx) {
-                ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
-                drawBackground(ctx, canvasRef.current!.width, canvasRef.current!.height, gridType, theme);
-                setStickyNotes([]);
-                updatePageState();
-            }
-        }
-    };
-
-    const exportPDF = () => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
-        const slidesHtml = pages.map((p, i) => `
-            <div style="page-break-after: always; height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f172a; padding: 20px;">
-                <img src="${p}" style="max-width: 100%; max-height: 100%; border: 15px solid #3e2723; border-radius: 10px; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
-            </div>
-        `).join('');
-        printWindow.document.write(`<html><body style="margin:0; background: #020617;">${slidesHtml}<script>window.onload=()=>window.print();</script></body></html>`);
-        printWindow.document.close();
-    };
-
-    const initCanvas = useCallback(() => {
-        if (!containerRef.current || !canvasRef.current || !tempCanvasRef.current) return;
-        const { clientWidth, clientHeight } = containerRef.current;
-        canvasRef.current.width = tempCanvasRef.current.width = clientWidth;
-        canvasRef.current.height = tempCanvasRef.current.height = clientHeight;
-        const ctx = canvasRef.current.getContext('2d');
-        if (ctx) {
-            drawBackground(ctx, clientWidth, clientHeight, gridType, theme);
-            if (pages[currentPageIdx]) {
-                const img = new Image(); img.src = pages[currentPageIdx];
-                img.onload = () => ctx.drawImage(img, 0, 0);
-            }
-        }
-    }, [gridType, theme, currentPageIdx, pages]);
-
-    useEffect(() => { initCanvas(); window.addEventListener('resize', initCanvas); return () => window.removeEventListener('resize', initCanvas); }, [initCanvas]);
-
-    return (
-        <div className={`flex flex-col h-[calc(100vh-10rem)] bg-slate-50 dark:bg-slate-950 rounded-[3.5rem] shadow-2xl border-[12px] border-[#3e2723] overflow-hidden relative font-cairo ${lang === 'ar' ? 'rtl' : 'ltr'}`}>
-            
-            {/* Professional School Tray */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#211210] p-3 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex items-center gap-6 z-50 border-t-4 border-[#5d4037]">
-                <div className="flex gap-2.5 px-4 border-l border-white/10">
-                    {COLORS.map(c => (
-                        <button key={c} onClick={() => setSettings(s => ({ ...s, color: c }))} className={`w-10 h-10 rounded-full transition-all border-2 ${settings.color === c ? 'scale-125 border-white shadow-[0_0_15px_white]' : 'border-transparent opacity-60 hover:opacity-100'}`} style={{ backgroundColor: c }} />
-                    ))}
-                </div>
-                <div className="flex gap-2">
-                    {[
-                        { id: 'pen', icon: Pen, label: 'طباشير' },
-                        { id: 'eraser', icon: Eraser, label: 'ممسحة' },
-                        { id: 'text', icon: Type, label: 'نص' },
-                        { id: 'shape', icon: Square, label: 'أشكال' },
-                        { id: 'laser', icon: Wand2, label: 'ليزر' },
-                    ].map(t => (
-                        <button key={t.id} onClick={() => setCurrentTool(t.id)} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${currentTool === t.id ? 'bg-white text-[#3e2723] shadow-xl scale-110' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
-                            <t.icon size={26} />
-                        </button>
-                    ))}
-                    <button onClick={() => setStickyNotes([...stickyNotes, { id: Date.now(), x: 100, y: 100, text: '', color: '#fef3c7' }])} className="w-14 h-14 bg-amber-400 text-amber-950 rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-lg"><StickyNote size={26} /></button>
-                </div>
-            </div>
-
-            {/* School Header Panel */}
-            <div className="bg-[#2d1b18] px-10 py-5 flex flex-wrap items-center justify-between gap-6 z-20 shadow-2xl border-b border-[#3e2723]">
-                <div className="flex items-center gap-5">
-                    <div className="flex bg-black/40 p-1 rounded-2xl border border-white/10">
-                        <button onClick={() => setTheme('green')} className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${theme === 'green' ? 'bg-[#064e3b] text-white shadow-lg' : 'text-white/30'}`}>خضراء</button>
-                        <button onClick={() => setTheme('black')} className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${theme === 'black' ? 'bg-slate-900 text-white shadow-lg' : 'text-white/30'}`}>سوداء</button>
-                        <button onClick={() => setTheme('white')} className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${theme === 'white' ? 'bg-white text-indigo-800 shadow-lg' : 'text-white/30'}`}>بيضاء</button>
-                    </div>
-                    <div className="flex bg-black/40 p-1 rounded-2xl border border-white/10">
-                        <button onClick={() => setGridType('plain')} className={`p-2.5 rounded-xl ${gridType === 'plain' ? 'bg-white/20 text-white' : 'text-white/30'}`}><Maximize2 size={18} /></button>
-                        <button onClick={() => setGridType('lines')} className={`p-2.5 rounded-xl ${gridType === 'lines' ? 'bg-white/20 text-white' : 'text-white/30'}`}><AlignJustify size={18} /></button>
-                        <button onClick={() => setGridType('grid')} className={`p-2.5 rounded-xl ${gridType === 'grid' ? 'bg-white/20 text-white' : 'text-white/30'}`}><Grid3X3 size={18} /></button>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3 bg-black/30 p-1.5 rounded-2xl border border-white/5">
-                    <button onClick={() => currentPageIdx > 0 && setCurrentPageIdx(currentPageIdx - 1)} disabled={currentPageIdx === 0} className="p-2.5 text-white/60 hover:text-white disabled:opacity-20"><ChevronRight size={22} /></button>
-                    <span className="text-sm font-black text-white px-4 min-w-[70px] text-center">{currentPageIdx + 1} / {pages.length}</span>
-                    <button onClick={() => currentPageIdx < pages.length - 1 && setCurrentPageIdx(currentPageIdx + 1)} disabled={currentPageIdx === pages.length - 1} className="p-2.5 text-white/60 hover:text-white disabled:opacity-20"><ChevronLeft size={22} /></button>
-                    <button onClick={() => { setPages([...pages, '']); setCurrentPageIdx(pages.length); }} className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-500 shadow-lg transition-all"><FilePlus size={20} /></button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <button onClick={exportPDF} className="px-8 py-3.5 bg-white text-[#3e2723] rounded-2xl font-black text-xs shadow-xl flex items-center gap-3 hover:bg-slate-100 transition-all"><Printer size={20} /> تصدير الدرس PDF</button>
-                    <button onClick={handleClear} className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center hover:bg-rose-600 transition-all shadow-lg"><Trash2 size={24} /></button>
-                </div>
-            </div>
-
-            {/* Float Palette for shapes */}
-            {currentTool === 'shape' && (
-                <div className="absolute top-32 left-10 flex flex-col gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl animate-in slide-in-from-left-4 z-50 border-2 border-indigo-100">
-                    {[
-                        { id: 'rectangle', icon: Square }, { id: 'circle', icon: Circle },
-                        { id: 'triangle', icon: Triangle }, { id: 'star', icon: Star },
-                        { id: 'arrow', icon: ArrowUpRight }, { id: 'line', icon: Minus },
-                        { id: 'check', icon: CheckCircle2 }, { id: 'cross', icon: XCircle }
-                    ].map(s => (
-                        <button key={s.id} onClick={() => setShapeType(s.id)} className={`w-12 h-12 rounded-2xl transition-all flex items-center justify-center ${shapeType === s.id ? 'bg-indigo-600 text-white shadow-lg scale-110' : 'text-slate-400 hover:bg-slate-50'}`}><s.icon size={22} /></button>
-                    ))}
-                </div>
-            )}
-
-            {/* Blackboard Canvas Surface */}
-            <main className="flex-1 relative touch-none bg-slate-900/50" ref={containerRef}>
-                <canvas ref={canvasRef} className="absolute inset-0 z-0" onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} />
-                <canvas ref={tempCanvasRef} className="absolute inset-0 z-10 pointer-events-none" />
-
-                {textInput?.visible && (
-                    <div className="absolute z-[60] bg-white/10 backdrop-blur-md p-1 rounded-2xl border-2 border-indigo-500 shadow-2xl" style={{ left: textInput.x, top: textInput.y }}>
-                        <textarea
-                            autoFocus
-                            value={textInput.value}
-                            onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
-                            onBlur={finishText}
-                            className="bg-transparent text-white outline-none font-black min-w-[280px] p-5 text-2xl resize-none placeholder:text-white/20"
-                            placeholder="اكتب فكرتك هنا..."
-                        />
-                        <div className="flex justify-end p-2 border-t border-white/10"><button onClick={finishText} className="bg-indigo-600 text-white px-5 py-2 rounded-xl font-black text-xs shadow-lg">تثبيت النص</button></div>
-                    </div>
-                )}
-
-                {stickyNotes.map(note => (
-                    <div key={note.id} className="absolute p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in zoom-in cursor-move z-30 group" style={{ left: note.x, top: note.y, backgroundColor: note.color, width: '220px', transform: 'rotate(-2deg)' }}>
-                        <button onClick={() => setStickyNotes(stickyNotes.filter(n => n.id !== note.id))} className="absolute -top-3 -right-3 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><CloseIcon size={14} /></button>
-                        <textarea className="w-full bg-transparent border-none outline-none font-black text-base text-slate-800 resize-none h-32" placeholder="اكتب ملاحظة هامة..." defaultValue={note.text} />
-                    </div>
-                ))}
-            </main>
-
-            <style>{`
-                canvas { touch-action: none; cursor: crosshair; }
-                .stroke-round { stroke-linecap: round; stroke-linejoin: round; }
-            `}</style>
+          <div className="flex items-center gap-2 ml-4">
+            {COLORS.map(c => (
+              <button key={c} onClick={() => setSettings({ ...settings, color: c })} className={`w-8 h-8 rounded-full border-2 transition-all ${settings.color === c ? 'border-indigo-600 scale-125 shadow-md' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+            ))}
+            <input type="range" min="1" max="60" value={settings.thickness} onChange={(e) => setSettings({ ...settings, thickness: parseInt(e.target.value) })} className="w-24 accent-indigo-600 ml-4" />
+          </div>
         </div>
-    );
+
+        <div className="flex items-center gap-3">
+          {isRendering && <div className="flex items-center gap-2 text-indigo-600 font-black text-[10px] animate-pulse"><Loader2 className="animate-spin" size={14}/> HD RENDERING...</div>}
+          
+          {isConnected && (
+            <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-1.5 rounded-2xl border border-emerald-100 shadow-sm animate-in fade-in">
+               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+               <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-2">غرفة: {roomId}</span>
+               <button onClick={generateInviteLink} className={`p-2 rounded-lg transition-all ${copyFeedback ? 'bg-emerald-500 text-white' : 'text-emerald-600 hover:bg-white'}`} title="نسخ رابط الدعوة">
+                  {copyFeedback ? <CheckCircle2 size={16}/> : <Share2 size={16}/>}
+               </button>
+            </div>
+          )}
+          
+          {isPdfMode && (
+            <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/40 px-4 py-2 rounded-2xl border border-indigo-100 shadow-sm">
+               <button onClick={() => { let n = Math.max(1, pdfPageNum-1); setPdfPageNum(n); renderPdfPage(pdfDoc, n); }} className="text-indigo-600 hover:bg-white p-1 rounded-lg"><ChevronRight size={20}/></button>
+               <span className="text-xs font-black text-indigo-600 mx-2 min-w-[6rem] text-center">صفحة {pdfPageNum} من {pdfDoc?.numPages}</span>
+               <button onClick={() => { let n = Math.min(pdfDoc.numPages, pdfPageNum+1); setPdfPageNum(n); renderPdfPage(pdfDoc, n); }} className="text-indigo-600 hover:bg-white p-1 rounded-lg"><ChevronLeft size={20}/></button>
+            </div>
+          )}
+          <button onClick={() => { if(confirm('تأكيد مسح الصفحة؟')) { if(isPdfMode) renderPdfPage(pdfDoc, pdfPageNum); else { setPages(['']); redrawCurrentPage(); } broadcastDraw(); } }} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={20} /></button>
+          <button onClick={() => setShowSessionModal(true)} className={`px-5 py-2.5 rounded-xl font-black text-xs transition-all ${isConnected ? 'bg-indigo-600 text-white shadow-xl' : 'bg-slate-100 text-slate-600'}`}>
+            <Users size={18} className="inline ml-2" /> {isConnected ? `تبديل الغرفة` : 'مشاركة السبورة'}
+          </button>
+        </div>
+      </div>
+
+      {/* Main High-DPI Workspace */}
+      <div ref={containerRef} className="flex-1 relative cursor-crosshair overflow-hidden touch-none select-none bg-slate-200">
+        <canvas ref={canvasRef} className="absolute inset-0 z-10" onMouseDown={startDraw} onMouseMove={drawingAction} onMouseUp={stopDraw} onTouchStart={startDraw} onTouchMove={drawingAction} onTouchEnd={stopDraw} />
+        <canvas ref={tempRef} className="absolute inset-0 z-20 pointer-events-none" />
+        
+        {/* Floating Input for Text and Sticky Notes */}
+        {textInput && (
+          <div className="absolute z-[100] animate-in zoom-in duration-200" style={{ left: textInput.x, top: textInput.y - (textInput.isSticky ? 60 : 30) }}>
+            <input 
+              autoFocus 
+              value={textInput.value} 
+              onChange={e => setTextInput({...textInput, value: e.target.value})} 
+              onKeyDown={handleAddText}
+              onBlur={() => { if(textInput.value === '') setTextInput(null); }}
+              className={`${textInput.isSticky ? 'bg-[#fef08a] text-black w-[220px] h-[60px] text-center shadow-2xl border-none' : 'bg-white/95 border-4 border-indigo-600 rounded-2xl px-6 py-4 min-w-[280px] text-xl'} font-black outline-none`}
+              placeholder={lang === 'ar' ? 'اكتب ملاحظتك واضغط Enter...' : 'Type note and Enter...'}
+              style={{ color: textInput.isSticky ? '#1e293b' : settings.color }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Control Bar */}
+      <div className="h-16 bg-white dark:bg-slate-800 border-t flex items-center justify-between px-10 z-30">
+        <div className="flex gap-3">
+          {['green', 'black', 'white'].map((t: any) => (
+            <button key={t} onClick={() => setTheme(t)} className={`w-8 h-8 rounded-full border-2 ${theme === t ? 'border-indigo-600 scale-110 shadow-lg' : 'border-slate-200'}`} style={{ backgroundColor: t === 'green' ? '#064e3b' : t === 'black' ? '#0f172a' : '#fff' }} />
+          ))}
+        </div>
+
+        <div className="flex items-center gap-5 bg-slate-50 dark:bg-slate-900 px-8 py-2 rounded-2xl border dark:border-slate-700 shadow-inner font-black text-sm">
+          <button onClick={() => { saveCurrentState(); setPage(p => Math.max(0, p - 1)); }} disabled={currentPage === 0} className="text-slate-400 hover:text-indigo-600 transition-colors"><ChevronRight size={22}/></button>
+          <span className="dark:text-white min-w-[3rem] text-center">{currentPage + 1} / {pages.length}</span>
+          <button onClick={() => { saveCurrentState(); setPage(p => Math.min(pages.length - 1, p + 1)); }} disabled={currentPage === pages.length - 1} className="text-slate-400 hover:text-indigo-600 transition-colors"><ChevronLeft size={22}/></button>
+          <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2"></div>
+          <button onClick={() => { saveCurrentState(); setPages([...pages, '']); setPage(pages.length); setIsPdfMode(false); }} className="text-indigo-600 hover:scale-125 transition-all"><FilePlus size={22}/></button>
+        </div>
+
+        <div className="flex gap-3">
+           <button onClick={() => { const a = document.createElement('a'); a.download = `Blackboard_Export_HD.png`; a.href = canvasRef.current!.toDataURL('image/png', 1.0); a.click(); }} className="px-8 py-2.5 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl text-[11px] font-black hover:bg-indigo-50 transition-all border dark:border-slate-700">حفظ كصورة</button>
+           <button onClick={() => window.print()} className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl text-[11px] font-black shadow-lg flex items-center gap-2 hover:bg-indigo-700"><Printer size={16}/> طباعة</button>
+        </div>
+      </div>
+
+      {/* Collaboration Modal */}
+      {showSessionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
+           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative border border-white/10">
+              <button onClick={() => setShowSessionModal(false)} className="absolute top-8 left-8 text-slate-400 hover:text-rose-500 transition-all"><X size={28}/></button>
+              <h3 className="text-2xl font-black text-center mb-10">المشاركة الحية</h3>
+              
+              <div className="space-y-6">
+                <button onClick={generateRandomCode} className="w-full py-6 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+                  <Sparkles size={24}/> إنشاء غرفة جديدة
+                </button>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-slate-900 px-4 text-slate-400 font-black">أو انضم بكود</span></div>
+                </div>
+
+                <div className="flex gap-2">
+                  <input value={roomId} onChange={(e) => setRoomId(e.target.value.toUpperCase())} placeholder="الكود..." className="flex-1 px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-black text-center text-lg tracking-widest" />
+                  <button onClick={() => connectToRoom(roomId)} className="px-8 py-4 bg-slate-100 hover:bg-indigo-50 text-indigo-600 rounded-2xl font-black text-sm transition-all border border-indigo-100">دخول</button>
+                </div>
+              </div>
+              
+              <p className="text-[10px] text-slate-400 text-center mt-8 font-black uppercase">شارك الرابط مع أصدقائك للرسم معاً في نفس اللحظة</p>
+           </div>
+        </div>
+      )}
+    </div>
+  );
 };

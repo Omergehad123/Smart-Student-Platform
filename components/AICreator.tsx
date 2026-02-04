@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Sparkles, Presentation, Download, Wand2, Loader2,
   Upload, CheckCircle2, FileUp, ImageIcon,
   ArrowRight, ArrowLeft, Image as LucideImage,
@@ -27,7 +27,7 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [project, setProject] = useState<{ title: string; slides: Slide[] } | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
-  
+
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const [isProcessingFile, setIsProcessingFile] = useState(false);
@@ -65,10 +65,10 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
         const text = await file.text();
         setFileContent(text);
       }
-    } catch (err) { 
-      alert("خطأ في معالجة الملف."); 
-    } finally { 
-      setIsProcessingFile(false); 
+    } catch (err) {
+      alert("خطأ في معالجة الملف.");
+    } finally {
+      setIsProcessingFile(false);
     }
   };
 
@@ -76,9 +76,9 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
     if (!topic.trim() && !fileContent) return alert("يرجى إدخال عنوان أو رفع ملف مرجعي.");
     setLoading(true);
     setGenerationStep('text');
-    
+
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_APi_kEY || '' });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY || '' });
       const prompt = `أنت خبير في تصميم العروض التقديمية التعليمية. قم بإنشاء محتوى عرض تقديمي عن: "${topic || 'الملف المرفق'}". 
       عدد الشرائح المطلوبة: ${slideCount}. 
       اللغة: ${lang === 'ar' ? 'العربية' : 'الإنجليزية'}.
@@ -104,7 +104,7 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
 
       const data = JSON.parse(textRes.text || '{}');
       let slides: Slide[] = data.slides || [];
-      
+
       setGenerationStep('images');
       const finalSlides: Slide[] = [];
 
@@ -116,7 +116,7 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
             model: 'gemini-2.5-flash-image',
             contents: { parts: [{ text: `Professional educational illustration, 4k, cinematic lighting, strictly NO TEXT on image: ${slide.imagePrompt}` }] },
           });
-          
+
           let b64 = "";
           const parts = imgRes.candidates?.[0]?.content?.parts;
           if (parts) {
@@ -240,18 +240,18 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
           <div className="lg:col-span-6 space-y-2">
-             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-4">{t.creator_topic_label}</label>
-             <input value={topic} onChange={e => setTopic(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-100 border-none dark:text-white transition-all" placeholder="عنوان العرض..." />
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-4">{t.creator_topic_label}</label>
+            <input value={topic} onChange={e => setTopic(e.target.value)} className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-base font-black focus:ring-4 focus:ring-indigo-100 border-none dark:text-white transition-all" placeholder="عنوان العرض..." />
           </div>
           <div className="lg:col-span-2 space-y-2">
-             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-4">{t.creator_slides_label}</label>
-             <input type="number" min="1" max="25" value={slideCount} onChange={e => setSlideCount(Math.max(1, parseInt(e.target.value) || 10))} className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-center text-xl font-black focus:ring-4 focus:ring-indigo-100 border-none dark:text-white transition-all" />
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-4">{t.creator_slides_label}</label>
+            <input type="number" min="1" max="25" value={slideCount} onChange={e => setSlideCount(Math.max(1, parseInt(e.target.value) || 10))} className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-center text-xl font-black focus:ring-4 focus:ring-indigo-100 border-none dark:text-white transition-all" />
           </div>
           <div className="lg:col-span-4 flex gap-2">
             <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 rounded-2xl border-2 border-dashed font-black text-[10px] cursor-pointer transition-all ${fileContent ? 'bg-emerald-50 border-emerald-300 text-emerald-600' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 hover:border-indigo-400 text-slate-400'}`}>
-               {isProcessingFile ? <Loader2 className="animate-spin" /> : fileContent ? <CheckCircle2 /> : <FileUp />}
-               <span className="truncate">{fileContent ? fileName : t.creator_upload_label}</span>
-               <input type="file" className="hidden" accept=".pdf,.txt" onChange={handleFileUpload} />
+              {isProcessingFile ? <Loader2 className="animate-spin" /> : fileContent ? <CheckCircle2 /> : <FileUp />}
+              <span className="truncate">{fileContent ? fileName : t.creator_upload_label}</span>
+              <input type="file" className="hidden" accept=".pdf,.txt" onChange={handleFileUpload} />
             </label>
             <button onClick={handleGenerate} disabled={loading || isProcessingFile} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50">
               {loading ? <Loader2 className="animate-spin" /> : <Wand2 size={18} />} {t.creator_btn}
@@ -262,67 +262,67 @@ export const AICreator: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => 
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-16 space-y-8 animate-in fade-in">
-           <div className="relative">
-              <div className="w-32 h-32 border-[10px] border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin shadow-xl"></div>
-              <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 animate-pulse" size={24} />
-           </div>
-           <div className="text-center">
-              <h3 className="text-xl font-black dark:text-white mb-2">
-                {generationStep === 'text' ? t.creator_processing_text : `${t.creator_processing_img} ${currentImgIndex}...`}
-              </h3>
-           </div>
+          <div className="relative">
+            <div className="w-32 h-32 border-[10px] border-indigo-600/10 border-t-indigo-600 rounded-full animate-spin shadow-xl"></div>
+            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 animate-pulse" size={24} />
+          </div>
+          <div className="text-center">
+            <h3 className="text-xl font-black dark:text-white mb-2">
+              {generationStep === 'text' ? t.creator_processing_text : `${t.creator_processing_img} ${currentImgIndex}...`}
+            </h3>
+          </div>
         </div>
       )}
 
       {project && !loading && (
         <div className="space-y-6 animate-in zoom-in duration-700">
-           <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-[2rem] shadow-xl border border-slate-100">
-              <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-black">{activeSlide + 1}</div>
-                 <h3 className="font-black text-sm dark:text-white truncate max-w-md">{project.slides[activeSlide].title}</h3>
-              </div>
-              <div className="flex gap-2">
-                 <button onClick={handleDownloadPDF} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] shadow-lg flex items-center gap-2 transition-all"><FileDown size={14} /> تصدير (PDF)</button>
-                 <button onClick={handleDownloadPPTX} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] shadow-lg flex items-center gap-2 transition-all"><Download size={14} /> تصدير (PPTX)</button>
-                 <button onClick={() => setProject(null)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><X size={16} /></button>
-              </div>
-           </div>
+          <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-[2rem] shadow-xl border border-slate-100">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-black">{activeSlide + 1}</div>
+              <h3 className="font-black text-sm dark:text-white truncate max-w-md">{project.slides[activeSlide].title}</h3>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleDownloadPDF} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] shadow-lg flex items-center gap-2 transition-all"><FileDown size={14} /> تصدير (PDF)</button>
+              <button onClick={handleDownloadPPTX} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[10px] shadow-lg flex items-center gap-2 transition-all"><Download size={14} /> تصدير (PPTX)</button>
+              <button onClick={() => setProject(null)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all"><X size={16} /></button>
+            </div>
+          </div>
 
-           <div className="bg-slate-950 rounded-[3rem] aspect-video relative overflow-hidden group shadow-2xl border-4 border-white/5">
-              {project.slides.map((slide, i) => (
-                <div key={i} className={`absolute inset-0 transition-all duration-1000 ${activeSlide === i ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}>
-                   <div className={`flex flex-col md:flex-row h-full ${lang === 'ar' ? 'md:flex-row-reverse' : ''}`}>
-                      <div className="flex-1 p-8 md:p-14 flex flex-col justify-center bg-slate-900/90 backdrop-blur-2xl">
-                         <h3 className={`text-xl md:text-2xl font-black text-white mb-6 border-indigo-600 leading-tight ${lang === 'ar' ? 'border-r-4 pr-4' : 'border-l-4 pl-4'}`}>{slide.title}</h3>
-                         <ul className="space-y-3">
-                            {slide.content.map((p, pi) => (
-                              <li key={pi} className="text-xs md:text-base text-slate-300 font-bold flex items-start gap-3">
-                                <div className="w-2 h-2 bg-indigo-500 rounded-full mt-1.5 shrink-0 shadow-[0_0_10px_rgba(79,70,229,0.5)]"></div>
-                                {p}
-                              </li>
-                            ))}
-                         </ul>
+          <div className="bg-slate-950 rounded-[3rem] aspect-video relative overflow-hidden group shadow-2xl border-4 border-white/5">
+            {project.slides.map((slide, i) => (
+              <div key={i} className={`absolute inset-0 transition-all duration-1000 ${activeSlide === i ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}>
+                <div className={`flex flex-col md:flex-row h-full ${lang === 'ar' ? 'md:flex-row-reverse' : ''}`}>
+                  <div className="flex-1 p-8 md:p-14 flex flex-col justify-center bg-slate-900/90 backdrop-blur-2xl">
+                    <h3 className={`text-xl md:text-2xl font-black text-white mb-6 border-indigo-600 leading-tight ${lang === 'ar' ? 'border-r-4 pr-4' : 'border-l-4 pl-4'}`}>{slide.title}</h3>
+                    <ul className="space-y-3">
+                      {slide.content.map((p, pi) => (
+                        <li key={pi} className="text-xs md:text-base text-slate-300 font-bold flex items-start gap-3">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full mt-1.5 shrink-0 shadow-[0_0_10px_rgba(79,70,229,0.5)]"></div>
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex-1 relative overflow-hidden">
+                    {slide.imageUrl ? (
+                      <img src={slide.imageUrl} className="w-full h-full object-cover" alt="Slide Visual" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                        <LucideImage size={64} className="text-slate-700 animate-pulse" />
                       </div>
-                      <div className="flex-1 relative overflow-hidden">
-                        {slide.imageUrl ? (
-                          <img src={slide.imageUrl} className="w-full h-full object-cover" alt="Slide Visual" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                             <LucideImage size={64} className="text-slate-700 animate-pulse" />
-                          </div>
-                        )}
-                      </div>
-                   </div>
+                    )}
+                  </div>
                 </div>
-              ))}
+              </div>
+            ))}
 
-              <div className={`absolute inset-y-0 ${lang === 'ar' ? 'left-0' : 'right-0'} w-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
-                <button onClick={() => setActiveSlide(s => Math.min(project.slides.length - 1, s + 1))} className="w-10 h-10 bg-white/10 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all active:scale-90"><ArrowLeft size={20} /></button>
-              </div>
-              <div className={`absolute inset-y-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
-                <button onClick={() => setActiveSlide(s => Math.max(0, s - 1))} className="w-10 h-10 bg-white/10 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all active:scale-90"><ArrowRight size={20} /></button>
-              </div>
-           </div>
+            <div className={`absolute inset-y-0 ${lang === 'ar' ? 'left-0' : 'right-0'} w-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
+              <button onClick={() => setActiveSlide(s => Math.min(project.slides.length - 1, s + 1))} className="w-10 h-10 bg-white/10 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all active:scale-90"><ArrowLeft size={20} /></button>
+            </div>
+            <div className={`absolute inset-y-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
+              <button onClick={() => setActiveSlide(s => Math.max(0, s - 1))} className="w-10 h-10 bg-white/10 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all active:scale-90"><ArrowRight size={20} /></button>
+            </div>
+          </div>
         </div>
       )}
     </div>
