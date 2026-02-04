@@ -76,6 +76,7 @@ export interface PublishedQuiz {
   createdAt: string
 }
 
+
 export type PageId =
   | 'dashboard'
   | 'subjects'

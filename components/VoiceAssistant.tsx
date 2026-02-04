@@ -93,6 +93,7 @@ export const VoiceAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const getAIStudio = () => (window as any).aistudio;
 
   useEffect(() => {
     if (!(window as any).pdfjsLib) {
@@ -231,115 +232,123 @@ export const VoiceAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }
     if (!lectureText && !imageData) return alert("يرجى رفع ملف أولاً.");
     setIsAudioSummaryLoading(true);
     setSummaryAudioUrl(null);
+
     try {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+
       let prompt = imageData
         ? "أعطني شرحاً صوتياً مفصلاً جداً لهذه الصورة وكأنك معلم يشرح لطلابه بأسلوب قصصي ممتع."
-        : `قم بإنشاء شرح صوتي كامل ومفصل جداً بأسلوب حوار ممتع ومبسط بين 'الدكتور' و 'الطالب'. المحتوى:\n${lectureText.substring(0, 15000)}`;
+        : `قم بإنشاء شرح صوتي كامل ومفصل جداً بأسلوب حوار ممتع بين الدكتور والطالب:\n${lectureText.substring(0, 6000)}`;
 
       const textRes = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: "gemini-1.5-flash",
         contents: imageData
-          ? { parts: [{ inlineData: { data: imageData.split(',')[1], mimeType: 'image/jpeg' } }, { text: prompt }] }
+          ? { parts: [{ inlineData: { data: imageData.split(",")[1], mimeType: "image/jpeg" } }, { text: prompt }] }
           : { parts: [{ text: prompt }] }
       });
 
       const summaryText = textRes.text || "";
+
       const ttsRes = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
+        model: "gemini-1.5-flash",
         contents: [{ parts: [{ text: `اقرأ هذا الشرح بأسلوب تفاعلي: ${summaryText}` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
-        },
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+        }
       });
 
-      const audioBase64: string | undefined = ttsRes.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (typeof audioBase64 === "string") {
+      const audioBase64 = ttsRes.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (audioBase64) {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         const audioBuffer = await decodeAudioData(decode(audioBase64), ctx, 24000, 1);
         const mp3Blob = audioBufferToMp3(audioBuffer);
         setSummaryAudioUrl(URL.createObjectURL(mp3Blob));
       }
-    } catch (e) { alert("فشل توليد التلخيص الصوتي."); } finally { setIsAudioSummaryLoading(false); }
+
+    } catch (e) {
+      console.error(e);
+      alert("فشل توليد التلخيص الصوتي.");
+    } finally {
+      setIsAudioSummaryLoading(false);
+    }
   };
 
-  const generateSmartVideo = async () => {
-    if (!lectureText && !imageData) return alert("يرجى رفع ملف (PDF أو صورة) أولاً ليتمكن الذكاء الاصطناعي من تحليله وتوليد الفيديو.");
 
-    if (window.aistudio && !await window.aistudio.hasSelectedApiKey()) {
-      alert("توليد الفيديو يتطلب اختيار مفتاح API مدفوع (Paid) من Google Cloud. سيتم فتح نافذة الاختيار الآن.");
-      await window.aistudio.openSelectKey();
+  const generateSmartVideo = async () => {
+    if (!lectureText && !imageData) return alert("ارفع ملف أولاً.");
+
+    const aistudio = getAIStudio();
+
+    if (aistudio && !await aistudio.hasSelectedApiKey()) {
+      alert("اختر مفتاح Google Cloud مدفوع.");
+      await aistudio.openSelectKey();
       return;
     }
 
     setIsVideoLoading(true);
-    setVideoStatus(lang === 'ar' ? 'جاري استيعاب محتوى ملفك...' : 'Ingesting your file...');
+    setVideoStatus("Analyzing content...");
 
     try {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+
       const analysisPrompt = imageData
-        ? "Analyze this image and create a highly detailed cinematic prompt for a 5-second educational video explaining its core concept. Describe motion, lighting, and camera work. Respond only with the English prompt."
-        : `Summarize the following lecture into a cinematic visual prompt for a 5-second video that explains the main concept visually. Use descriptive artistic language. 
-           Content: ${lectureText.substring(0, 2000)}
-           Respond only with the English prompt.`;
+        ? "Analyze this image and create a cinematic educational video prompt."
+        : `Summarize lecture visually:\n${lectureText.substring(0, 2000)}`;
 
       const analysisRes = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: "gemini-1.5-flash",
         contents: imageData
-          ? { parts: [{ inlineData: { data: imageData.split(',')[1], mimeType: 'image/jpeg' } }, { text: analysisPrompt }] }
+          ? { parts: [{ inlineData: { data: imageData.split(",")[1], mimeType: "image/jpeg" } }, { text: analysisPrompt }] }
           : { parts: [{ text: analysisPrompt }] }
       });
 
-      const visualPrompt: string = analysisRes.text || "Scientific visualization of lecture content";
-      setVideoStatus(lang === 'ar' ? 'جاري تصميم المشاهد السينمائية...' : 'Designing cinematic scenes...');
+      const visualPrompt = analysisRes.text || "Scientific educational animation";
+
+      setVideoStatus("Rendering cinematic video...");
 
       let videoConfig: any = {
-        model: 'veo-3.1-fast-generate-preview',
+        model: "veo-2.0-generate-preview", // safer public name
         prompt: visualPrompt,
         config: {
           numberOfVideos: 1,
-          resolution: '720p',
-          aspectRatio: '16:9'
+          resolution: "720p",
+          aspectRatio: "16:9"
         }
       };
 
       if (imageData) {
         videoConfig.image = {
-          imageBytes: imageData.split(',')[1],
-          mimeType: 'image/jpeg'
+          imageBytes: imageData.split(",")[1],
+          mimeType: "image/jpeg"
         };
       }
 
       let operation = await ai.models.generateVideos(videoConfig);
-
-      setVideoStatus(lang === 'ar' ? 'جاري الرندرة الحقيقية (قد يستغرق 3-5 دقائق)...' : 'Rendering real video (takes 3-5 mins)...');
 
       while (!operation.done) {
         await new Promise(r => setTimeout(r, 10000));
         operation = await ai.operations.getVideosOperation({ operation });
       }
 
-      setVideoStatus(lang === 'ar' ? 'تجهيز ملف MP4 للتحميل...' : 'Preparing MP4 for download...');
+      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
 
-      const downloadLink: string | undefined = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (typeof downloadLink === "string") {
+      if (downloadLink) {
         const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_API_KEY}`);
         const blob = await response.blob();
         setVideoUrl(URL.createObjectURL(blob));
       }
+
     } catch (e: any) {
       console.error(e);
-      if (typeof e?.message === "string" && e.message.includes("entity was not found")) {
-        alert("يرجى اختيار مفتاح API مدفوع مرتبط بمشروع Google Cloud مفعل فيه الفواتير (Billing).");
-        if (window.aistudio) await window.aistudio.openSelectKey();
-      } else {
-        alert("فشل توليد الفيديو. تأكد من استهلاكك للـ Quota أو صلاحية المفتاح.");
-      }
+      alert("فشل توليد الفيديو.");
+      const aistudio = getAIStudio();
+      if (aistudio) await aistudio.openSelectKey();
     } finally {
       setIsVideoLoading(false);
     }
   };
+
 
   const downloadVideo = () => {
     if (!videoUrl) return;
