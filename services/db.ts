@@ -1,8 +1,6 @@
-
-import { User, Subject, Lecture, Task, Note, StudyStats } from '../types';
+import { User, Subject, Lecture, Task, Note, StudyStats, PublishedQuiz } from '../types';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CONFIG } from './config';
-
 
 const hasValidSupabaseUrl = typeof CONFIG.SUPABASE_URL === 'string' && CONFIG.SUPABASE_URL.startsWith('http');
 const hasValidAnonKey = typeof CONFIG.SUPABASE_ANON_KEY === 'string';
@@ -27,7 +25,8 @@ const KEYS = {
   SUBJECTS: 'smart_student_subjects',
   TASKS: 'smart_student_tasks',
   NOTES: 'smart_student_notes',
-  STATS: 'smart_student_stats'
+  STATS: 'smart_student_stats',
+  QUIZZES: 'smart_student_quizzes'
 };
 
 const local = {
@@ -40,7 +39,7 @@ const local = {
   set: (key: string, val: any) => {
     try {
       localStorage.setItem(key, JSON.stringify(val));
-    } catch (e) {}
+    } catch (e) { }
   }
 };
 
@@ -55,11 +54,11 @@ export const db = {
           full_name: user.full_name,
           xp: user.xp || 120
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     return user;
   },
-  
+
   getUser: async (): Promise<User | null> => {
     const localUser = local.get(KEYS.USER);
     if (supabase) {
@@ -69,7 +68,7 @@ export const db = {
           local.set(KEYS.USER, data);
           return data as User;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return localUser;
   },
@@ -83,11 +82,11 @@ export const db = {
           local.set(KEYS.SUBJECTS, data);
           return data as Subject[];
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return localData;
   },
-  
+
   saveSubject: async (sub: Partial<Subject>): Promise<Subject[]> => {
     const current = await db.getSubjects();
     const newSub: Subject = {
@@ -109,7 +108,7 @@ export const db = {
           progress: 0,
           lectures: []
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     return updated;
   },
@@ -119,7 +118,7 @@ export const db = {
     const updated = current.filter((s: any) => s.id !== id);
     local.set(KEYS.SUBJECTS, updated);
     if (supabase) {
-      try { await supabase.from('subjects').delete().eq('id', id); } catch (e) {}
+      try { await supabase.from('subjects').delete().eq('id', id); } catch (e) { }
     }
     return updated;
   },
@@ -198,7 +197,7 @@ export const db = {
           local.set(KEYS.TASKS, data);
           return data as Task[];
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return localTasks;
   },
@@ -219,7 +218,7 @@ export const db = {
           subject_color: task.subjectColor || 'bg-indigo-500',
           status: 'upcoming'
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     return updated;
   },
@@ -240,7 +239,7 @@ export const db = {
           subject_color: t.subjectColor || 'bg-indigo-500',
           status: 'upcoming'
         })));
-      } catch (e) {}
+      } catch (e) { }
     }
     return updated;
   },
@@ -253,7 +252,7 @@ export const db = {
       try {
         const task = updated.find((t: any) => t.id === id);
         await supabase.from('tasks').update({ status: task.status }).eq('id', id);
-      } catch (e) {}
+      } catch (e) { }
     }
     return updated;
   },
@@ -263,7 +262,7 @@ export const db = {
     const updated = current.filter((t: any) => t.id !== id);
     local.set(KEYS.TASKS, updated);
     if (supabase) {
-      try { await supabase.from('tasks').delete().eq('id', id); } catch (e) {}
+      try { await supabase.from('tasks').delete().eq('id', id); } catch (e) { }
     }
     return updated;
   },
@@ -277,7 +276,7 @@ export const db = {
           local.set(KEYS.NOTES, data);
           return data as Note[];
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return localNotes;
   },
@@ -297,7 +296,7 @@ export const db = {
           category: note.category,
           date: new Date().toLocaleDateString('ar-EG')
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     return updated;
   },
@@ -307,7 +306,7 @@ export const db = {
     const updated = current.filter((n: any) => n.id !== id);
     local.set(KEYS.NOTES, updated);
     if (supabase) {
-      try { await supabase.from('notes').delete().eq('id', id); } catch (e) {}
+      try { await supabase.from('notes').delete().eq('id', id); } catch (e) { }
     }
     return updated;
   },
@@ -328,9 +327,71 @@ export const db = {
     return updated;
   },
 
+  // NEW: Quiz methods
+  getQuizzes: async (): Promise<PublishedQuiz[]> => {
+    const localQuizzes = local.get(KEYS.QUIZZES) || [];
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('quizzes')
+          .select('*')
+          .eq('user_id', MOCK_USER_ID)
+          .order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          local.set(KEYS.QUIZZES, data);
+          return data as PublishedQuiz[];
+        }
+      } catch (e) { }
+    }
+    return localQuizzes;
+  },
+
+  publishQuiz: async (quiz: PublishedQuiz): Promise<PublishedQuiz> => {
+    // Local storage fallback
+    const currentQuizzes = local.get(KEYS.QUIZZES) || [];
+    const newQuiz = {
+      ...quiz,
+      localId: Date.now(),
+      id: quiz.id.startsWith('quiz_') ? quiz.id : 'quiz_' + Math.random().toString(36).substr(2, 9)
+    };
+    const updatedQuizzes = [newQuiz, ...currentQuizzes];
+    local.set(KEYS.QUIZZES, updatedQuizzes);
+
+    // Supabase sync - matches your exact quiz structure
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('quizzes')
+          .insert({
+            id: quiz.id,                    // quiz_abc123 format
+            user_id: MOCK_USER_ID,
+            creator_id: quiz.creatorId || MOCK_USER_ID,  // "current_user" string
+            settings: quiz.settings,         // { timeLimit, shuffleQuestions }
+            questions: quiz.questions,       // Array of questions
+            created_at: quiz.createdAt       // ISO string
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          // Update local storage with Supabase data
+          local.set(KEYS.QUIZZES, updatedQuizzes.map((q: any) =>
+            q.id === quiz.id ? { ...data, localId: q.localId } : q
+          ));
+          return data as PublishedQuiz;
+        }
+      } catch (e) {
+        console.warn('Supabase quiz save failed, using local storage:', e);
+      }
+    }
+
+    return newQuiz as PublishedQuiz;
+  },
+
+
   calculateTotalXP: (subjects: Subject[], tasks: Task[], notes: Note[], stats: StudyStats): number => {
     let total = 120;
-    if (subjects) subjects.forEach(s => { if (s.lectures) total += (s.lectures.filter(l => l.isCompleted).length) * 20; });
+    if (subjects) subjects.forEach(s => { if (s.lectures) total += (s.lectures.filter((l: any) => l.isCompleted).length) * 20; });
     if (tasks) total += tasks.filter(t => t.status === 'completed').length * 10;
     if (notes) total += notes.length * 15;
     return total;

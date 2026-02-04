@@ -62,6 +62,7 @@ export interface QuizQuestion {
 }
 
 export interface QuizSettings {
+  title: string
   timeLimit: number
   shuffleQuestions: boolean
   showResults: boolean
