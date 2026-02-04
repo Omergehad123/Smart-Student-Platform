@@ -110,7 +110,7 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
     if (!audioBlob) return;
     setLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
 
       const blobToBase64 = (blob: Blob): Promise<string> => {
         return new Promise((resolve) => {
@@ -154,7 +154,7 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
     if (note.translation) return;
     setTranslatingId(note.id);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const prompt = `Translate the following Arabic educational note into clear, professional English:\n\n${note.text}\n\nReturn ONLY the translated text.`;
       const res = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -193,7 +193,7 @@ export const MyNotes: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) => {
 
   const speakNote = async (text: string) => {
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const res = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text: `اقرأ الملاحظة بوضوح: ${text}` }] }],

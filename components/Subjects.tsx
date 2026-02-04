@@ -162,7 +162,7 @@ export const Subjects: React.FC<{ lang: 'ar' | 'en' }> = ({ lang }) => {
 
     try {
       const text = await extractTextFromLecture(lecture);
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const prompt = `You are an expert in simplifying complex sciences. Turn the following content into a fun and highly simplified educational dialogue between 'Professor' (a wise and friendly teacher) and 'Student' (a curious smart student). 
       The dialogue must explain all the basic concepts mentioned in the text in a 'Storyteller' style.
       

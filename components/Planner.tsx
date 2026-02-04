@@ -126,7 +126,7 @@ export const Planner: React.FC<PlannerProps> = ({ lang = 'ar' }) => {
 
     setLoadingAI(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const prompt = `أنت أستاذ جامعي وخبير في تنظيم الوقت. قم بتحليل المحتوى التالي وتوليد خطة دراسية لـ ${planDuration} بمعدل ${dailyHours} ساعات يومياً تبدأ في ${startTime}.
       المحتوى المرجعي:
       ${contextData.substring(0, 15000)}

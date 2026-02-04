@@ -117,7 +117,7 @@ export const AIAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) =
     setCurrentQuestionIdx(0);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const combinedText = contexts.filter(c => c.type === 'text').map(c => c.data).join('\n\n');
 
       const prompt = `أنت خبير في بناء الاختبارات الأكاديمية. 
@@ -162,7 +162,7 @@ export const AIAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }) =
     setLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const combinedText = contexts.filter(c => c.type === 'text').map(c => c.data).join('\n\n');
 
       const response = await ai.models.generateContent({

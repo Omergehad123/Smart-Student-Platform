@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 
 export const getAIResponse = async (prompt: string, context: string = "عام"): Promise<string> => {
   // المفتاح يتم سحبه من البيئة لضمان الأمان وعدم تسريبه على GitHub
-  const apiKey = import.meta.env.VITE_API_kEY;
+  const apiKey = import.meta.env.VITE_API_KEY;
 
   if (!apiKey) {
     console.error("APi_kEY is missing from environment variables.");

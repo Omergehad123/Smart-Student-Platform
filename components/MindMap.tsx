@@ -82,7 +82,7 @@ export const MindMap: React.FC = () => {
 
     setLoading(true);
     setZoom(1);
-    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY || '' });
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY || '' });
 
     try {
       let contents: any = [];
@@ -238,8 +238,8 @@ export const MindMap: React.FC = () => {
   const Node: React.FC<{ item: any; level?: number }> = ({ item, level = 0 }) => (
     <div className="flex flex-col items-center">
       <div className={`px-6 py-3 rounded-2xl font-bold shadow-lg mb-8 text-white transition-all hover:scale-105 border-2 border-white/10 ${level === 0 ? 'bg-indigo-600 text-xl py-4 px-10' :
-          level === 1 ? 'bg-purple-500' :
-            level === 2 ? 'bg-blue-500' : 'bg-emerald-500 text-sm'
+        level === 1 ? 'bg-purple-500' :
+          level === 2 ? 'bg-blue-500' : 'bg-emerald-500 text-sm'
         }`}>
         {item.name}
       </div>

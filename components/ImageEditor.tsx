@@ -28,7 +28,7 @@ export const ImageEditor: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const apiKey = import.meta.env.VITE_API_kEY;
+      const apiKey = import.meta.env.VITE_API_KEY;
       const ai = new GoogleGenAI({ apiKey });
       const base64 = image.split(',')[1];
       const response = await ai.models.generateContent({

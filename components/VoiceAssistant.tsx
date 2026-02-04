@@ -232,7 +232,7 @@ export const VoiceAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }
     setIsAudioSummaryLoading(true);
     setSummaryAudioUrl(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       let prompt = imageData
         ? "أعطني شرحاً صوتياً مفصلاً جداً لهذه الصورة وكأنك معلم يشرح لطلابه بأسلوب قصصي ممتع."
         : `قم بإنشاء شرح صوتي كامل ومفصل جداً بأسلوب حوار ممتع ومبسط بين 'الدكتور' و 'الطالب'. المحتوى:\n${lectureText.substring(0, 15000)}`;
@@ -277,7 +277,7 @@ export const VoiceAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }
     setVideoStatus(lang === 'ar' ? 'جاري استيعاب محتوى ملفك...' : 'Ingesting your file...');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
       const analysisPrompt = imageData
         ? "Analyze this image and create a highly detailed cinematic prompt for a 5-second educational video explaining its core concept. Describe motion, lighting, and camera work. Respond only with the English prompt."
         : `Summarize the following lecture into a cinematic visual prompt for a 5-second video that explains the main concept visually. Use descriptive artistic language. 
@@ -324,7 +324,7 @@ export const VoiceAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }
 
       const downloadLink: string | undefined = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (typeof downloadLink === "string") {
-        const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_API_kEY}`);
+        const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_API_KEY}`);
         const blob = await response.blob();
         setVideoUrl(URL.createObjectURL(blob));
       }
@@ -362,7 +362,7 @@ export const VoiceAssistant: React.FC<{ lang?: 'ar' | 'en' }> = ({ lang = 'ar' }
       return;
     }
 
-    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_kEY });
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
     const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     audioContextRef.current = outputCtx;
